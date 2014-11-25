@@ -1,0 +1,37 @@
+License and Disclaimer
+
+This is my license and disclaimer document. By downloading and using any of my software you agree to be bound by it.
+This document supercedes any other license and disclaimer I may have made prior to its writing.
+
+
+License:
+
+    * The software is free, and you may use it as long as you like.
+    * You may redistribute the software, as long as this license is included.
+    * The source code to the software is included, you may modify it, improve it etc.
+    * You may make derivative works.
+    * Any derivative works you make must also include this license and disclaimer
+    * I respectfully request but do not require that should you improve the software or make
+	 a derivative work, you notify me of it. My contact information is generally included
+	in the program's source. (Blyss.Sarania@Gmail.com)
+
+I am pretty permissive with my stuff, but there ARE some things you can not do with it:
+
+    * You may NOT sell the software, in whole or part.
+    * You may NOT use the software to engage in or promote copyright infringement of any kind.
+    * You may NOT use the software to cause offense to, insult, defame, hurt or harass any person or corporate entity.
+    * You may NOT modify this license if you redistribute the software, whether you made changes to the application or not.
+    * You may NOT remove any current or previous contributors credit from the source or documentation,
+	even if you negated their work.
+
+
+Disclaimer:
+This software is provided AS IS without any warranty, including the implied ones for merchantability and/or fitness
+for a particular purpose. Use of any of the software is AT YOUR OWN RISK. You agree that should any
+negative effect result from the use of the software, you are solely responsible.
+
+________________________
+
+This document last updated at: 19:21 CST 3/28/2014
+
+Copyright 2014 Blyss Sarania
