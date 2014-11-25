@@ -7,6 +7,7 @@ A work in project 6502 emulator written in FreeBASIC. Core 6502 is almost done. 
 
 Project Members:
 Blyss Sarania
+
 Nobbs66
 
 
