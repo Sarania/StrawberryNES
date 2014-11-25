@@ -249,7 +249,6 @@ Sub loadROM
 End Sub
 
 Sub savestate
-	Sleep 2000,1
 	Dim As Integer f = FreeFile
 	If FileExists("strawberry.state") Then Kill "strawberry.state"
 	Open "strawberry.state" For binary As #F
@@ -269,10 +268,8 @@ Sub savestate
 	Put #f, 65549, cpu.sp
 	Put #f, 65551, cpu.PC
 	Close #f
-	Print "Loaded PC as " & cpu.pc & " " & Hex(cpu.pc)
-Print "Loaded SP as " & cpu.sp & " " & Hex(cpu.sp)
-Print cpu.memory(1549)
-Print Hex(cpu.x)
+Print "Saved state as: "
+Print  CurDir & "/strawberry.state"
 Sleep 2000,1
 End Sub
 
@@ -295,13 +292,8 @@ Sub loadstate
 	get #f, 65551, cpu.PC,2
 	Get #f, 65549, cpu.sp,2
 	Close #f
-'Cls
-Print "Loaded PC as " & cpu.pc & " " & Hex(cpu.pc)
-'cpu.sp = tt
-Print "Loaded SP as " & cpu.sp & " " & Hex(cpu.sp)
-Print cpu.memory(1549)
-Print Hex(cpu.x)
-'Sleep 2000,1
+Print "Loaded state."
+Sleep 1000,1
 End Sub
 
 Sub CAE

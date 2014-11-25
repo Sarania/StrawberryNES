@@ -74,7 +74,7 @@ Sub get_data
 			tdata = @cpu.memory(cpu.pc)
 			cpu.pc+=1
 		Case "ABS" 'Absolute
-			taddr = readmem(cpu.pc,2) 
+			taddr = readmem(cpu.pc,2)
 			tdata = @cpu.memory(taddr)
 			cpu.pc+=2
 		Case "ABSX" 'absolute X
@@ -105,7 +105,7 @@ Sub get_data
 			cpu.pc+=1
 		Case "INDX" 'Indirect X
 			indaddr = readmem(cpu.pc)
-			indaddr = (indaddr + cpu.X) and &hFF
+			indaddr = (indaddr + cpu.X) And &hFF
 			taddr = readmem(indaddr,2)
 			tdata = @cpu.memory(taddr)
 			cpu.pc+=1
@@ -121,13 +121,13 @@ Sub INS_ADC
 	'add with carry
 	Dim As Integer adctmp
 	get_data
-   adctmp = cpu.acc + *tdata + cpu.flagC
-   If adctmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-   If Bit(adctmp,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-  'cpu.flagV=iif(((not (cpu.acc Xor *tdata) and &H80) and ((cpu.acc xor adctmp) and &H80)),1,0)
-  If Bit(cpu.acc,7) <> Bit(adctmp,7) Then cpu.flagV = 1 Else cpu.flagV = 0
-   If adctmp > &hFF Then cpu.flagC = 1 Else cpu.flagC = 0
-   cpu.acc = adctmp And &hFF
+	adctmp = cpu.acc + *tdata + cpu.flagC
+	If adctmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
+	If Bit(adctmp,7) Then cpu.flagS = 1 Else cpu.flagS = 0
+	'cpu.flagV=iif(((not (cpu.acc Xor *tdata) and &H80) and ((cpu.acc xor adctmp) and &H80)),1,0)
+	If Bit(cpu.acc,7) <> Bit(adctmp,7) Then cpu.flagV = 1 Else cpu.flagV = 0
+	If adctmp > &hFF Then cpu.flagC = 1 Else cpu.flagC = 0
+	cpu.acc = adctmp And &hFF
 End Sub
 
 Sub INS_AND
@@ -265,7 +265,7 @@ Sub INS_CPX
 	'possibly broken
 	get_data
 	Dim As UByte cmptmp = cpu.x - *tdata
-   If cmptmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
+	If cmptmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
 	If Bit(cmptmp,7) Then cpu.flagS = 1 Else cpu.flagS = 0
 	If cmptmp >= 0 Then cpu.flagC = 1 Else Cpu.flagC = 0
 End Sub
@@ -274,8 +274,8 @@ Sub INS_CPY
 	'compare Y with memory
 	'possibly broken
 	get_data
-	Dim As Ubyte cmptmp = cpu.y - *tdata
-   If cmptmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
+	Dim As UByte cmptmp = cpu.y - *tdata
+	If cmptmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
 	If Bit(cmptmp,7) Then cpu.flagS = 1 Else cpu.flagS = 0
 	If cmptmp >= 0 Then cpu.flagC = 1 Else Cpu.flagC = 0
 End Sub
@@ -285,7 +285,7 @@ Sub INS_DEC
 	get_data
 	*tdata -= 1
 	If *tdata = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(*tdata,7) then cpu.flagS = 1 Else cpu.flagS = 0
+	If Bit(*tdata,7) Then cpu.flagS = 1 Else cpu.flagS = 0
 
 End Sub
 
@@ -468,9 +468,9 @@ Sub INS_ROR
 	get_data
 	Dim As UByte roltmp
 	roltmp = *tdata
-	*tdata Shr = 1 'shift whole thing right 
+	*tdata Shr = 1 'shift whole thing right
 	If cpu.flagC = 1 Then *tdata = BitSet(*tdata,7) Else *tdata = BitReset(*tdata,7)'  put old carry bit in new bit 7
-   If Bit(roltmp,0) Then cpu.flagC = 1 Else cpu.flagC = 0 ' put old bit 0 in new carry bit
+	If Bit(roltmp,0) Then cpu.flagC = 1 Else cpu.flagC = 0 ' put old bit 0 in new carry bit
 	If *tdata = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
 	If Bit(*tdata,7) Then cpu.flagS = 1 Else cpu.flagS = 0
 End Sub
@@ -499,14 +499,14 @@ End Sub
 Sub INS_SBC
 	'subtract with carry
 	'maybe right
-	Dim As integer sbctmp
+	Dim As Integer sbctmp
 	get_data
 	sbctmp = cpu.acc - *tdata - (1 - cpu.flagC)
-	if sbctmp = 0 then cpu.flagZ = 1 else cpu.flagZ = 0
-   if bit(sbctmp,7) then cpu.flagS = 1 else cpu.flagS = 0
-   If sbctmp >= 0 then cpu.flagC = 1 else cpu.flagC = 0
-   cpu.flagV=iif((((cpu.acc xor sbctmp) and &H80) and ((cpu.acc xor *tdata) and &H80)),1,0)
-   cpu.acc = sbctmp And &Hff
+	If sbctmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
+	If Bit(sbctmp,7) Then cpu.flagS = 1 Else cpu.flagS = 0
+	If sbctmp >= 0 Then cpu.flagC = 1 Else cpu.flagC = 0
+	cpu.flagV=IIf((((cpu.acc Xor sbctmp) And &H80) And ((cpu.acc Xor *tdata) And &H80)),1,0)
+	cpu.acc = sbctmp And &Hff
 End Sub
 
 Sub INS_SEC

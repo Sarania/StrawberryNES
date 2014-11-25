@@ -254,6 +254,7 @@ Sub INS_CMP
 	'compare accumulator with memory
 	'possibly broken
 	get_data
+	Dim x As single
 	Dim As UByte cmptmp = cpu.acc - *tdata
 	If cmptmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
 	If Bit(cmptmp,7) Then cpu.flagS = 1 Else cpu.flagS = 0
