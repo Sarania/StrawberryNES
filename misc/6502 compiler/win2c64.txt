@@ -1,0 +1,42 @@
+**************************************
+*** MOS Technology 6510 Assembler  ***
+*** for the Commodore 64 Computer  ***
+*** (C) 2005 - 2011  Aart J.C. Bik ***
+**************************************
+***
+*** This 6510 assembler has been developed by Aart J.C. Bik.
+*** This software is *not* in the public domain. However, it is
+*** freely available without any fee for education, research, and
+*** non-profit purposes. By obtaining copies of this software, you,
+*** the Licensee, agree to abide by the following conditions and
+*** understandings with respect to the copyrighted software:
+***
+*** 1.  The software is copyrighted by Aart J.C. Bik
+*** and he retains ownership of the software.
+***
+*** 2.  Permission to use and modify this software and its documentation
+*** for education, research, and non-profit purposes is hereby granted to
+*** Licensee, provided that the copyright notice, the original author's
+*** name, version identification, and this permission notice appear on
+*** all such works, and that no charge be made for such copies.
+***
+*** 3. Any entity desiring permission to incorporate this software into
+*** commercial products should contact Aart J.C. Bik (http://www.aartbik.com/)
+***
+*** 4.  THE COPYRIGHT HOLDERS MAKE NO REPRESENTATIONS ABOUT THE SUITABILITY
+*** OF THE SOFTWARE FOR ANY PURPOSE.  IT IS PROVIDED "AS IS" WITHOUT EXPRESS
+*** OR IMPLIED WARRANTY.
+***
+*** 5.  The copyright holders shall not be liable for any damages suffered
+*** by Licensee from the use of this software.
+***
+*** 6.  Your courtesy in mentioning the use of this assembler in any work
+*** that presents results obtained by using (extensions or modifications
+*** of) this software is highly appreciated.
+***
+*** Names of binaries of this cross-assembler:
+***
+*** Windows: win2c64
+*** Linux:   lin2c64
+*** Mac OS:  mac2c64
+***

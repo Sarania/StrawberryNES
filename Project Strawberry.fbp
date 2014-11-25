@@ -1,0 +1,31 @@
+[Project]
+Version=3
+Description=Project Strawberry
+Api=fb (FreeBASIC)
+[Make]
+Current=1
+1=Windows GUI,fbc -s gui
+Recompile=2
+Module=Module Build,fbc -c
+[TabOrder]
+TabOrder=2,3,4,1
+[File]
+1=Project Strawberry.bas
+2=Inc\6502_instruction_set.bi
+3=Inc\decoder.bi
+4=Inc\misc.bi
+5=Res\Strawberry.res
+6=Res\strawberry.rc
+[BreakPoint]
+1=
+2=
+3=
+4=
+5=
+[FileInfo]
+1=0,185,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+2=0,484,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+3=0,586,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+4=0,94,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+5=0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+6=0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0

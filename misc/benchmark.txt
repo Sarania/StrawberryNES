@@ -1,0 +1,5 @@
+star 130000
+disco 119000
+spacer 101000
+alive 137200
+radnom 131000
