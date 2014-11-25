@@ -189,14 +189,14 @@ End Sub
 
 Sub loadini
 	Dim f As Integer = FreeFile
-	If Not FileExists("strawberry.ini") Then
-		Open "strawberry.ini" For Output As #f
+	If Not FileExists(ExePath & "\strawberry.ini") Then
+		Open ExePath & "\strawberry.ini" For Output As #f
 		Print #f, 640
 		Print #f, 480
 		Print #f, 8000
 		Close #f
 	EndIf
-	Open "strawberry.ini" For Input As #f
+	Open ExePath & "\strawberry.ini" For Input As #f
 	Input #f, screenx
 	Input #f, screeny
 	Input #f, opgoal

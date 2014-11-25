@@ -212,7 +212,7 @@ Sub loadROM
 	End If
 	Print "Note: ROM must be in EXEPATH, else use drag and drop to load it!)"
 	Input "Program to run (compiled, no header): ", progname 'Get a filename from user
-   progname = ExePath & progname
+   progname = ExePath & "\" & progname
 	
 	gotname:
 	If progname = "" Or Not FileExists(progname) Then 'Break if no such filename
