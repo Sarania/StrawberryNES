@@ -1,9 +1,9 @@
-Declare Function decode(ByVal opc As Byte) As Byte
+Declare Sub decode(ByVal opc As Byte)
 
-Function decode(ByVal opc As Byte) As Byte
-	Dim temp As String
-	temp = Hex(opc)
-	Select Case LCase(temp)
+Sub decode(ByVal opc As Byte)
+	Dim decodertemp As String
+	decodertemp = Hex(opc)
+	Select Case LCase(decodertemp)
 		'add with carry
 		Case "69"
 			instruction = "ADC"
@@ -665,9 +665,8 @@ Function decode(ByVal opc As Byte) As Byte
 			amode = "IMP"
 
 		Case Else
-        instruction = "Decoder error! " & temp
+        instruction = "Decoder error! " & decodertemp
         amode = "Decoder error!"
         
 	End Select
-	Return 0
-End Function
+End Sub

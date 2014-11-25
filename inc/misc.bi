@@ -21,6 +21,7 @@ Declare Sub keycheck
 
 
 Sub keycheck
+	'This  is the keycheck for the "simple" 6502 programs. Basically it's memory mapped IO. This stuff will need to go when we work on NES/Atari/whatever
 	If MultiKey(SC_w) Then
 		cpu.memory(&hff) = Asc("w")
 	elseIf MultiKey(SC_a) Then
@@ -83,7 +84,8 @@ Sub keycheck
 	End If
 
 End Sub
-Sub dumpmemory
+
+Sub dumpmemory ' dump memory to 6502dump.mem, for examining with hex or whatever
 	Dim As Integer f = FreeFile
 	If fileexists("6502dump.mem") Then Kill ("6502dump.mem")
 	Open "6502dump.mem" For Binary As #f
@@ -94,6 +96,7 @@ End Sub
 
 
 Sub simplegraphics
+	'Simple graphics renderer. As with keycheck, this is only useful for the "simple" 6502 machine. The graphics are memory mapped.
 	Dim As integer	memcount = -1, sf
 	If monitor = 0 Then sf = (screeny/32) Else sf = 8
 	Dim As fb.image Ptr simplebuff
