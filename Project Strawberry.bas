@@ -42,7 +42,7 @@ Randomize timer
 Dim Shared debug As UByte = 0 ' If debug is set, stepping mode is enabled and the emulation pauses after each opcode is executed
 Dim Shared monitor As UByte = 1 ' If monitor is set you can see the debug infos, if not, the graphics take up the whole window
 dim shared opGoal as uinteger ' Ops per second is limited to this number
-#Include Once "Crt.bi" 'C runtime functions
+#Include Once "crt.bi" 'C runtime functions
 #Include Once "fbgfx.bi" 'Freebasic graphics library
 Using fb ' Namespace
 #Include Once "file.bi" 'File functions
