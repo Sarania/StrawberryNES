@@ -88,12 +88,12 @@ Sub keycheck
 
 End Sub
 Sub dumpmemory
+	Dim As Integer f = FreeFile
 	If fileexists("6502dump.mem") Then Kill ("6502dump.mem")
-	Open "6502dump.mem" For Binary As #1
-	For i As Integer = 0 To 65535
-		Put #1, i+1, cpu.memory(i)
-	Next
-	Close #1
+	Open "6502dump.mem" For Binary As #f
+	Put #f, 1, cpu.memory()
+	Close #f
+
 End Sub
 
 

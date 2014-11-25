@@ -70,8 +70,8 @@ Sub keycheck
 
 	If MultiKey(SC_f1)Then  'save state
 		savestate
-		beep
-		Sleep 100,1
+		'beep
+		'Sleep 100,1
 		While MultiKey(SC_F1)
 			'nothing
 		Wend
@@ -79,8 +79,8 @@ Sub keycheck
 
 	If MultiKey(SC_f2)Then  'load state
 		loadstate
-		beep
-		Sleep 100,1
+		'beep
+		'Sleep 100,1
 		While MultiKey(SC_F2)
 			'nothing
 		Wend
