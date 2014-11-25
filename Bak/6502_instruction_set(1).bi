@@ -538,8 +538,6 @@ Sub INS_STA
 End Sub
 
 Sub INS_STX
-	Beep
-	beep
 	'checked
 	'store x in memory
 	get_data

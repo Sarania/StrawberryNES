@@ -141,6 +141,7 @@ Sub initcpu
 	cpu.flagU = 1
 End Sub
 
+
 Function readmem(ByVal addr As LongInt, ByVal numbytes As UInteger = 1) As UInteger
 	'read from memory
 	Dim As String strbytes
@@ -209,8 +210,10 @@ Sub loadROM
 		progname = Command(1)
 		GoTo gotname
 	End If
-
+	Print "Note: ROM must be in EXEPATH, else use drag and drop to load it!)"
 	Input "Program to run (compiled, no header): ", progname 'Get a filename from user
+   progname = ExePath & progname
+	
 	gotname:
 	If progname = "" Or Not FileExists(progname) Then 'Break if no such filename
 		Cls
@@ -307,14 +310,13 @@ Sub CAE
 	end
 End Sub
 
-
-
 ScreenRes screenx,screeny,32
-strawberry = freeimage_load_fb(ExePath & "/res/strawberry.png", TRUE) ' load cute strawberry :)
+ChDir ExePath
+ChDir("..")
+strawberry = freeimage_load_fb(CurDir & "/Res/strawberry.png", TRUE) ' load cute strawberry :)
 initcpu
 loadROM ' loadfile into ROM and cpu memory
-
-CLS
+Cls
 
 If debug > 0 Then
 	If fileexists("log.txt") Then Kill ("log.txt") ' erase log so we can write a new one

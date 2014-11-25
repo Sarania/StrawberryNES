@@ -203,7 +203,7 @@ Sub INS_BRK
 	Print "Program Issued BRK command!"
 	Print instruction
 	Print amode
-	Print cpu.pc
+	Print Hex(cpu.pc)
 	Sleep 1000,1
 	'Sleep
 	'cae
