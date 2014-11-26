@@ -97,12 +97,14 @@ Dim Shared As UInteger ticks, romsize, screenx, screeny, start, totalops
 dim shared as single lastframetime
 Dim Shared As Any Ptr strawberry
 lastframetime=Timer
-version= "0.20 alpha"
+version= "0.30 alpha"
 #Include Once "inc/misc.bi" 'misc stuff
 #Include Once "inc/6502_instruction_set.bi" ' contains the instruction set
 #Include Once "inc/decoder.bi" ' decodes hex opcodes to asm
 
 loadini ' need to load it here because of font stuff
+ChDir ExePath
+ChDir("..")
 
 'font stuff
 Dim As Integer fonts = 20
@@ -188,8 +190,8 @@ Sub status
 		Print opHistory(i) & "               "
 	Next
 		fprint(2, screeny-60, "Project Strawberry",RGB(255,0,0))
-		fprint(2, screeny-35, "Version 0.20 alpha ")
-		fprint(2, screeny-10, "By Blyss Sarania")
+		fprint(2, screeny-35, "Version 0.30 alpha ")
+		fprint(2, screeny-10, "By Blyss Sarania and Nobbs66")
 	Put(screenx-70,6),strawberry, alpha
 End Sub
 
@@ -309,8 +311,6 @@ Sub CAE
 End Sub
 
 ScreenRes screenx,screeny,32
-ChDir ExePath
-ChDir("..")
 strawberry = freeimage_load_fb(CurDir & "/Res/strawberry.png", TRUE) ' load cute strawberry :)
 initcpu
 loadROM ' loadfile into ROM and cpu memory

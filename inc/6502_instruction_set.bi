@@ -126,7 +126,7 @@ adctmp = cpu.acc + *tdata + cpu.flagC
 If Bit(cpu.acc,7) <> Bit(adctmp,7) Then cpu.flagV = 1 Else cpu.flagV = 0
 cpu.flagS = Bit(cpu.acc,7)
 If adctmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-If adctmp > 255 Then cpu.flagC = 1 Else cpu.flagC = 0 
+If adctmp > 255 Then cpu.flagC = 1 Else If adctmp < &h80 Then cpu.flagC = 1 Else cpu.flagC = 0 
 cpu.acc = adctmp And &hFFF
 End Sub
 
