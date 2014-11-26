@@ -128,6 +128,7 @@ Sub INS_ADC
 	If Bit(cpu.acc,7) <> Bit(adctmp,7) Then cpu.flagV = 1 Else cpu.flagV = 0
 	If adctmp > &hFF Then cpu.flagC = 1 Else cpu.flagC = 0
 	If adctmp < &h80 Then cpu.flagC =1 Else cpu.flagC = 0
+	cpu.acc = adctmp And &hFF
 End Sub
 
 Sub INS_AND
