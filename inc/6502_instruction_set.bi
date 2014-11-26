@@ -127,7 +127,7 @@ Sub INS_ADC
 	'cpu.flagV=iif(((not (cpu.acc Xor *tdata) and &H80) and ((cpu.acc xor adctmp) and &H80)),1,0)
 	If Bit(cpu.acc,7) <> Bit(adctmp,7) Then cpu.flagV = 1 Else cpu.flagV = 0
 	If adctmp > &hFF Then cpu.flagC = 1 Else cpu.flagC = 0
-	cpu.acc = adctmp And &hFF
+	If adctmp < &h80 Then cpu.flagC =1 Else cpu.flagC = 0
 End Sub
 
 Sub INS_AND
