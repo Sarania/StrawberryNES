@@ -48,14 +48,15 @@ Using fb ' Namespace
 #Include Once "file.bi" 'File functions
 #Include Once "Freeimage.bi" ' Freeimage library
 #Include Once "inc/freetofb.bi" 'Easily use Freeimage images in Freebasic
-'#Include Once "Inc/freetypeclass.bi" 'fontz
+#Include Once "zlib.bi"
+#Include Once "Inc/freetypeclass.bi" 'fontz
 Declare Function readmem(ByVal addr As LongInt, ByVal numbytes As UInteger = 1) As UInteger ' for reading memory
 Declare Sub writemem(ByVal addr As LongInt, ByVal value As Byte) ' for writing memory
 Declare Sub status ' debug infos
 Declare Sub initcpu ' reset cpu
 Declare Sub loadROM ' load ROM
 Declare Sub CAE ' (C)leanup(A)nd(E)xit
-'Declare Sub fprint(ByVal x As Integer, ByVal y As Integer, ByVal text As String, ByVal c As Integer = RGB(255,255,255))
+Declare Sub fprint(ByVal x As Integer, ByVal y As Integer, ByVal text As String, ByVal c As Integer = RGB(255,255,255))
 Declare Sub loadini
 Declare Sub savestate
 Declare Sub loadstate
@@ -83,12 +84,13 @@ Type cpus
 	flagZ As UByte ' Zero flag
 	flagC As UByte ' Carry flag
 	PC As UShort 'program counter
-	sp As Ushort = 510 'stack pointer
+	sp As Ushort = 511 'stack pointer
 	memory(0 To 65535) As Byte 'RAM
 	'stack = 256 - 511
 End Type
 
 ReDim Shared As Byte rom(0 To 1) 'ROM
+Dim Shared As String opHistory(0 To 255)
 Dim Shared cpu As cpus '6502 CPU
 Dim Shared As String instruction, amode, msg, version
 Dim Shared As UInteger ticks, romsize, screenx, screeny, start, totalops
@@ -105,24 +107,24 @@ loadini ' need to load it here because of font stuff
 'font stuff
 Dim As Integer fonts = 20
 'compute font based on screeny, sketchy but works reasonably well
-'fonts = CInt(screeny/32)
+fonts = CInt(screeny/32)
 'but not smaller than 20
-'If fonts < 20 Then fonts = 20
+If fonts < 20 Then fonts = 20
 
 'Load fonts
-'Dim Shared As truetype font
-'If font.init Then Stop
-'If font.get_font("res/arial.ttf")=0 Then Stop
-'font.set_render_mode(FT_RENDER_MODE_NORMAL)
-'font.set_screen_size(screenx,screeny)
-'font.set_size(fonts)
-'font.set_color(RGB(255,255,255))
-'font.set_back_color(RGB(0,0,0))
+Dim Shared As truetype font
+If font.init Then Stop
+If font.get_font("res/arial.ttf")=0 Then Stop
+font.set_render_mode(FT_RENDER_MODE_NORMAL)
+font.set_screen_size(screenx,screeny)
+font.set_size(fonts)
+font.set_color(RGB(255,255,255))
+font.set_back_color(RGB(0,0,0))
 
-'Sub fprint(ByVal x As Integer, ByVal y As Integer, ByVal text As String, ByVal c As Integer = RGB(255,255,255))
-'	font.set_color(c)
-'	font.print_text(x, y, text)
-'End Sub
+Sub fprint(ByVal x As Integer, ByVal y As Integer, ByVal text As String, ByVal c As Integer = RGB(255,255,255))
+	font.set_color(c)
+	font.print_text(x, y, text)
+End Sub
 
 
 
@@ -181,9 +183,13 @@ Sub status
 	msg = "                                                                 "
 	Print "                                                                             "
 	Print "                                                                             "
-	'	fprint(2, screeny-60, "Project Strawberry",RGB(255,0,0))
-	'	fprint(2, screeny-35, "Version 0.20 alpha ")
-	'	fprint(2, screeny-10, "By Blyss Sarania")
+	Print "Trace:"
+	For i As Integer = 1 To 20
+		Print opHistory(i) & "               "
+	Next
+		fprint(2, screeny-60, "Project Strawberry",RGB(255,0,0))
+		fprint(2, screeny-35, "Version 0.20 alpha ")
+		fprint(2, screeny-10, "By Blyss Sarania")
 	Put(screenx-70,6),strawberry, alpha
 End Sub
 

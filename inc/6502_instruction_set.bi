@@ -116,19 +116,18 @@ Sub get_data
 			tdata = @cpu.memory(taddr)
 			cpu.pc+=1
 	End Select
+	opHistory(0) = opHistory(0) & " " & taddr & " " & *tdata
 End Sub
 Sub INS_ADC
 	'add with carry
-	Dim As Integer adctmp
-	get_data
-	adctmp = cpu.acc + *tdata + cpu.flagC
-	If adctmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(adctmp,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	'cpu.flagV=iif(((not (cpu.acc Xor *tdata) and &H80) and ((cpu.acc xor adctmp) and &H80)),1,0)
-	If Bit(cpu.acc,7) <> Bit(adctmp,7) Then cpu.flagV = 1 Else cpu.flagV = 0
-	If adctmp > &hFF Then cpu.flagC = 1 Else cpu.flagC = 0
-	If adctmp < &h80 Then cpu.flagC =1 Else cpu.flagC = 0
-	cpu.acc = adctmp And &hFF
+Dim As Integer adctmp
+get_data
+adctmp = cpu.acc + *tdata + cpu.flagC
+If Bit(cpu.acc,7) <> Bit(adctmp,7) Then cpu.flagV = 1 Else cpu.flagV = 0
+cpu.flagS = Bit(cpu.acc,7)
+If adctmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
+If adctmp > 255 Then cpu.flagC = 1 Else cpu.flagC = 0 
+cpu.acc = adctmp And &hFFF
 End Sub
 
 Sub INS_AND
@@ -206,6 +205,7 @@ Sub INS_BRK
 	Print amode
 	Print Hex(cpu.pc)
 	Sleep 1000,1
+	sleep
 	'Sleep
 	'cae
 	ticks+=7

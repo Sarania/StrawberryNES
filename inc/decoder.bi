@@ -669,4 +669,9 @@ Sub decode(ByVal opc As Byte)
         amode = "Decoder error!"
         
 	End Select
+	For i As Integer = 255 To 0 Step -1
+		opHistory(i) = opHistory(i-1)
+	Next
+	
+	opHistory(0) = instruction & "(" & amode & ")"
 End Sub
