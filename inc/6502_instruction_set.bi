@@ -120,14 +120,14 @@ Sub get_data
 End Sub
 Sub INS_ADC
 	'add with carry
-Dim As Integer adctmp
-get_data
-adctmp = cpu.acc + *tdata + cpu.flagC
-If Bit(cpu.acc,7) <> Bit(adctmp,7) Then cpu.flagV = 1 Else cpu.flagV = 0
-cpu.flagS = Bit(cpu.acc,7)
-If adctmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-If adctmp > 255 Then cpu.flagC = 1 Else If adctmp < &h80 Then cpu.flagC = 1 Else cpu.flagC = 0 
-cpu.acc = adctmp And &hFFF
+	Dim As Integer adctmp
+	get_data
+	adctmp = cpu.acc + *tdata + cpu.flagC
+	If Bit(cpu.acc,7) <> Bit(adctmp,7) Then cpu.flagV = 1 Else cpu.flagV = 0
+	If Bit(cpu.acc,7) Then cpu.FlagS = 1 Else cpu.FlagS = 0
+	If adctmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
+	If adctmp > 255 Then cpu.flagC = 1  Else cpu.flagC = 0
+	cpu.acc = adctmp And &hFFF
 End Sub
 
 Sub INS_AND
@@ -205,7 +205,7 @@ Sub INS_BRK
 	Print amode
 	Print Hex(cpu.pc)
 	Sleep 1000,1
-	sleep
+	Sleep
 	'Sleep
 	'cae
 	ticks+=7

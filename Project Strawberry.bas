@@ -38,10 +38,10 @@ This document last updated at: 19:21 CST 3/28/2014
 
 Copyright 2014 Blyss Sarania
 '/
-Randomize timer
+Randomize Timer
 Dim Shared debug As UByte = 0 ' If debug is set, stepping mode is enabled and the emulation pauses after each opcode is executed
 Dim Shared monitor As UByte = 1 ' If monitor is set you can see the debug infos, if not, the graphics take up the whole window
-dim shared opGoal as uinteger ' Ops per second is limited to this number
+Dim Shared opGoal As UInteger ' Ops per second is limited to this number
 #Include Once "crt.bi" 'C runtime functions
 #Include Once "fbgfx.bi" 'Freebasic graphics library
 Using fb ' Namespace
@@ -84,7 +84,7 @@ Type cpus
 	flagZ As UByte ' Zero flag
 	flagC As UByte ' Carry flag
 	PC As UShort 'program counter
-	sp As Ushort = 511 'stack pointer
+	sp As UShort = 500 'stack pointer
 	memory(0 To 65535) As Byte 'RAM
 	'stack = 256 - 511
 End Type
@@ -94,7 +94,7 @@ Dim Shared As String opHistory(0 To 255)
 Dim Shared cpu As cpus '6502 CPU
 Dim Shared As String instruction, amode, msg, version
 Dim Shared As UInteger ticks, romsize, screenx, screeny, start, totalops
-dim shared as single lastframetime
+Dim Shared As Single lastframetime
 Dim Shared As Any Ptr strawberry
 lastframetime=Timer
 version= "0.30 alpha"
@@ -107,11 +107,11 @@ ChDir ExePath
 ChDir("..")
 
 'font stuff
-Dim As Integer fonts = 20
+Dim As Integer fonts = 18
 'compute font based on screeny, sketchy but works reasonably well
 fonts = CInt(screeny/32)
-'but not smaller than 20
-If fonts < 20 Then fonts = 20
+'but not smaller than 18
+If fonts < 18 Then fonts = 18
 
 'Load fonts
 Dim Shared As truetype font
@@ -189,10 +189,10 @@ Sub status
 	For i As Integer = 1 To 20
 		Print opHistory(i) & "               "
 	Next
-		fprint(2, screeny-60, "Project Strawberry",RGB(255,0,0))
-		fprint(2, screeny-35, "Version 0.30 alpha ")
-		fprint(2, screeny-10, "By Blyss Sarania and Nobbs66")
-	Put(screenx-70,6),strawberry, alpha
+	fprint(2, screeny-60, "Project Strawberry",RGB(255,0,0))
+	fprint(2, screeny-35, "Version 0.30 alpha ")
+	fprint(2, screeny-10, "By Blyss Sarania and Nobbs66")
+	Put(screenx-70,6),strawberry, Alpha
 End Sub
 
 Sub loadini
@@ -220,8 +220,8 @@ Sub loadROM
 	End If
 	Print "Note: ROM must be in EXEPATH, else use drag and drop to load it!)"
 	Input "Program to run (compiled, no header): ", progname 'Get a filename from user
-   progname = ExePath & "\" & progname
-	
+	progname = ExePath & "\" & progname
+
 	gotname:
 	If progname = "" Or Not FileExists(progname) Then 'Break if no such filename
 		Cls
@@ -232,7 +232,7 @@ Sub loadROM
 
 	'remove path from filename
 	For z As Integer = 1 To Len(progname) Step 1
-		onechr = right(left(progname,z),1)
+		onechr = Right(Left(progname,z),1)
 		If onechr = "\" Then
 			onechr = ""
 			shpname = ""
@@ -259,7 +259,7 @@ End Sub
 Sub savestate
 	Dim As Integer f = FreeFile
 	If FileExists("strawberry.state") Then Kill "strawberry.state"
-	Open "strawberry.state" For binary As #F
+	Open "strawberry.state" For Binary As #F
 	Put #f, 1, cpu.memory()
 	Put #f, 65537, cpu.acc
 	Put #f, 65538, cpu.X
@@ -276,9 +276,9 @@ Sub savestate
 	Put #f, 65549, cpu.sp
 	Put #f, 65551, cpu.PC
 	Close #f
-Print "Saved state as: "
-Print  CurDir & "/strawberry.state"
-Sleep 2000,1
+	Print "Saved state as: "
+	Print  CurDir & "/strawberry.state"
+	Sleep 2000,1
 End Sub
 
 Sub loadstate
@@ -289,7 +289,7 @@ Sub loadstate
 	Get #f, 65538, cpu.X
 	Get #f, 65539, cpu.Y
 	Get #f, 65540, cpu.ps
-	get #f, 65541, cpu.FlagS
+	Get #f, 65541, cpu.FlagS
 	Get #f, 65542, cpu.FlagV
 	Get #f, 65543, cpu.FlagU
 	Get #f, 65544, cpu.FlagB
@@ -297,17 +297,17 @@ Sub loadstate
 	Get #f, 65546, cpu.FlagI
 	Get #f, 65547, cpu.FlagZ
 	Get #f, 65548, cpu.FlagC
-	get #f, 65551, cpu.PC,2
+	Get #f, 65551, cpu.PC,2
 	Get #f, 65549, cpu.sp,2
 	Close #f
-Print "Loaded state."
-Sleep 1000,1
+	Print "Loaded state."
+	Sleep 1000,1
 End Sub
 
 Sub CAE
 	If strawberry Then ImageDestroy(Strawberry)
 	Close
-	end
+	End
 End Sub
 
 ScreenRes screenx,screeny,32
@@ -317,7 +317,7 @@ loadROM ' loadfile into ROM and cpu memory
 Cls
 
 If debug > 0 Then
-	If fileexists("log.txt") Then Kill ("log.txt") ' erase log so we can write a new one
+	If FileExists("log.txt") Then Kill ("log.txt") ' erase log so we can write a new one
 EndIf
 
 cpu.pc = &h0600 ' set program counter to program start
@@ -325,7 +325,6 @@ cpu.pc = &h0600 ' set program counter to program start
 start = Timer ' for opcode timing
 
 'main
-
 Do
 	keycheck
 	cpu.oldpc = cpu.pc ' set this for storing debug information
@@ -445,7 +444,7 @@ Do
 		Case "TYA"
 			INS_TYA
 		Case Else
-			beep
+			Beep
 			msg = "decoder broken somehow, received " & instruction
 	End Select
 	totalops+=1
@@ -463,7 +462,7 @@ Do
 	End If
 
 	If debug = 1 Then Sleep
- ' check for keys
+	' check for keys
 
 	If debug > 0 Then
 		Open "log.txt" For Append As #22
