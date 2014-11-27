@@ -84,7 +84,7 @@ Type cpus
 	flagZ As UByte ' Zero flag
 	flagC As UByte ' Carry flag
 	PC As UShort 'program counter
-	sp As UShort = 500 'stack pointer
+	sp As UShort = 511 'stack pointer
 	memory(0 To 65535) As Byte 'RAM
 	'stack = 256 - 511
 End Type
