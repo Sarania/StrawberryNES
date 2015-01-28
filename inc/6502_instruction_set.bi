@@ -123,11 +123,12 @@ Sub INS_ADC
 	Dim As Integer adctmp
 	get_data
 	adctmp = cpu.acc + *tdata + cpu.flagC
+	adctmp = adctmp And &hFF
 	If Bit(cpu.acc,7) <> Bit(adctmp,7) Then cpu.flagV = 1 Else cpu.flagV = 0
 	If Bit(cpu.acc,7) Then cpu.FlagS = 1 Else cpu.FlagS = 0
 	If adctmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If adctmp > 255 Then cpu.flagC = 1  Else cpu.flagC = 0
-	cpu.acc = adctmp And &hFFF
+	If adctmp < cpu.acc Then cpu.flagC = 1 Else cpu.flagC = 0
+	cpu.acc = adctmp And &hFF
 End Sub
 
 Sub INS_AND
