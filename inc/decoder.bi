@@ -427,11 +427,11 @@ Sub decode(ByVal opc As Byte)
 			amode = "IMP"
 
 			'logical inclusive or
-		Case "9"
+		Case "09"
 			instruction = "ORA"
 			amode = "IMM"
 
-		Case "5"
+		Case "05"
 			instruction = "ORA"
 			amode = "ZP"
 
@@ -439,7 +439,7 @@ Sub decode(ByVal opc As Byte)
 			instruction = "ORA"
 			amode = "ZPX"
 
-		Case "d"
+		Case "0d"
 			instruction = "ORA"
 			amode = "ABS"
 
@@ -451,7 +451,7 @@ Sub decode(ByVal opc As Byte)
 			instruction = "ORA"
 			amode = "ABSY"
 
-		Case "1"
+		Case "01"
 			instruction = "ORA"
 			amode = "INDX"
 
@@ -465,7 +465,7 @@ Sub decode(ByVal opc As Byte)
 			amode = "IMP"
 
 			'push processor status
-		Case "8"
+		Case "08"
 			instruction = "PHP"
 			amode = "IMP"
 

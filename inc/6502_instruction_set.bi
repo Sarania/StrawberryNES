@@ -200,13 +200,15 @@ End Sub
 
 Sub INS_BRK
 	'Break
-	'cpu.ps = BitSet(cpu.ps,4)
-	Print "Program Issued BRK command!"
-	Print instruction
-	Print amode
-	Print Hex(cpu.pc)
-	Sleep 1000,1
-	Sleep
+	cpu.ps = BitSet(cpu.ps,4)
+	
+	'Print "Program Issued BRK command!"
+	'Print instruction
+	'Print amode
+	'Print Hex(cpu.pc)
+	cpu.pc += 1
+	'Sleep 1000,1
+	'Sleep
 	'Sleep
 	'cae
 	ticks+=7
