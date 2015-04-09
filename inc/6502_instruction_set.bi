@@ -211,6 +211,8 @@ Sub INS_BRK
 	'Sleep
 	'Sleep
 	'cae
+	
+ 	
 	ticks+=7
 End Sub
 

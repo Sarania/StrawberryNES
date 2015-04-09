@@ -62,6 +62,9 @@ Declare Sub savestate
 Declare Sub loadstate
 
 Type cpus
+	'------------------------'
+	'   6502 Registers/MEM   '
+	'------------------------'
 	oldpc As UShort 'save pc for debug
 	acc As UByte 'accumulator
 	X As UByte 'X register
@@ -87,11 +90,42 @@ Type cpus
 	sp As UShort = 511 'stack pointer
 	memory(0 To 65535) As Byte 'RAM
 	'stack = 256 - 511
+	'---------------------------------'
+	'          PPU Registers          '
+	'---------------------------------'
+	PPUctrl1 As UByte 'PPU control register 1
+	PPUctrl2 As UByte 'PPU control register 2
+   PPUstatus As UByte'PPU status register
+	SPRAddr As UByte'Sprite addresss register
+	SPRIO As UByte 'Sprite I/O register
+   VRAMaddr1 As UByte 'VRAM address register 1
+	VRAMaddr2 As UByte 'VRAM address register 2
+	VRAMio As UByte 'VRAM I/O register
+	VRAM (0 To 65535) As Byte 'PPU VRAM
+	writeVRAM As Byte 'similar to the stack pointer but for VRAM
+	 
 End Type
+Type ppus
+	'VRAM Tables
+	pattern0 (0 To 4095) As Integer 'Pattern Table 0
+	pattern1 (0 To 4095) As Integer 'Pattern Table 1
+	atTable0 (0 To 959) As Integer 
+	nameTable0 (0 To 64) As Integer
+	atTable1 (0 To 959) As Integer
+	nameTable1 (0 To 64)As Integer
+	atTable2 (0 To 959) As Integer
+	nameTable2 (0 To 64) As Integer
+	atTable3 (0 To 959) As Integer
+	nameTable3 (0 To 64) As Integer
+	imagePalette (0 To 16) As Integer
+	spritePalette(0 To 16) As Integer
+End Type
+
 
 ReDim Shared As Byte rom(0 To 1) 'ROM
 Dim Shared As String opHistory(0 To 255)
 Dim Shared cpu As cpus '6502 CPU
+Dim Shared ppu As ppus '2C02 PPU 
 Dim Shared As String instruction, amode, msg, version
 Dim Shared As UInteger ticks, romsize, screenx, screeny, start, totalops
 Dim Shared As Single lastframetime
@@ -143,6 +177,43 @@ Sub initcpu
 	cpu.flagV = 0
 	cpu.flagB = 1
 	cpu.flagU = 1
+	
+	For i As Integer = 0 To &hFFF
+		cpu.memory(i) = ppu.pattern0(i)
+	Next
+	For i As Integer = 0 To &hFFF
+		cpu.memory(i) = ppu.pattern1(i) + &hFFF
+	Next
+	For i As Integer = 0 To &h3C0
+		cpu.memory(i) = ppu.nameTable0(i) + &h1FFF
+	Next
+	For i As Integer = 0 To &h40
+		cpu.memory(i) = ppu.atTable0(i) + &h23bF
+	Next
+	For i As Integer = 0 To &h3C0
+		cpu.memory(i) = ppu.nameTable1(i) + &h2bFF
+	Next
+	For i As Integer = 0 To &h40
+		cpu.memory(i) = ppu.atTable1(i) + &h27BF
+	Next
+	For I As Integer = 0 To &h3C0
+		cpu.memory(i) = ppu.nameTable2(i) + &h27FF
+	Next
+	For i As Integer = 0 To &h40
+		cpu.memory(i) = ppu.atTable2(i) + &h2BBF
+	Next
+	For i As Integer = 0 To &h3C0
+		cpu.memory(i) = ppu.nameTable3(i) + &h2BFF
+	Next
+	For i As Integer = 0 To &h40
+		cpu.memory(i) = ppu.atTable3(i) + &h2FBF
+	Next
+	For i As Integer = 0 To &h10
+		cpu.memory(i) = ppu.imagePalette(i) + &h3EFF
+	Next
+	For i As Integer = 0 To &h10 
+		cpu.memory(i) = ppu.spritePalette(i) + &hF1F
+	Next
 End Sub
 
 
