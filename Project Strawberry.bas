@@ -109,16 +109,16 @@ Type ppus
 	'VRAM Tables
 	pattern0 (0 To 4095) As Integer 'Pattern Table 0
 	pattern1 (0 To 4095) As Integer 'Pattern Table 1
-	atTable0 (0 To 959) As Integer 
-	nameTable0 (0 To 64) As Integer
-	atTable1 (0 To 959) As Integer
-	nameTable1 (0 To 64)As Integer
-	atTable2 (0 To 959) As Integer
-	nameTable2 (0 To 64) As Integer
-	atTable3 (0 To 959) As Integer
-	nameTable3 (0 To 64) As Integer
-	imagePalette (0 To 16) As Integer
-	spritePalette(0 To 16) As Integer
+	atTable0 (0 To 959) As Integer  'Attrubute Table0
+	nameTable0 (0 To 63) As Integer 'Name Table0
+	atTable1 (0 To 959) As Integer  'Attribute Table1
+	nameTable1 (0 To 63)As Integer  'Name Table1
+	atTable2 (0 To 959) As Integer  'Attribute Table2
+	nameTable2 (0 To 63)As Integer  'Name Table2
+	atTable3 (0 To 959) As Integer  'Attribute Table3
+	nameTable3 (0 To 63) As Integer 'Name Table3
+	imagePalette (0 To 15) As Integer'Image Palette
+	spritePalette(0 To 15) As Integer 'Spritie Palette
 End Type
 
 
@@ -169,6 +169,39 @@ Sub initcpu
 	For i As Integer = 0 To 65535
 		cpu.memory(i) = 0
 	Next
+	For i As Integer = 0 To 65535
+		cpu.VRAM(i) = 0
+	Next
+	For i As Integer = 0 To 4095
+		ppu.pattern0(i) = 0
+	Next
+	For i As Integer = 0 To 4095
+		ppu.pattern1(i) = 0
+	Next
+	For i As Integer = 0 To 959
+		ppu.atTable0(i) = 0
+	Next
+	For i As Integer = 0 To 63
+		ppu.nameTable0(i) = 0
+	Next
+	For i As Integer = 0 To 959
+		ppu.atTable1(i) = 0
+	Next
+	For i As Integer = 0 To 63
+		ppu.nameTable1(i) = 0
+	Next
+	For i As Integer = 0 To 959
+		ppu.atTable2(i) = 0
+	Next
+	For i As Integer = 0 To 63
+		ppu.nameTable2(i) = 0
+	Next
+	For i As Integer = 0 To 959
+		ppu.atTable3(i) = 0
+	Next
+	For i As Integer = 0 To 63
+		ppu.nameTable3(i) = 0
+	Next
 	cpu.flagS = 0
 	cpu.flagZ = 0
 	cpu.flagI = 0
@@ -178,10 +211,10 @@ Sub initcpu
 	cpu.flagB = 1
 	cpu.flagU = 1
 	
-For i As Integer = 0 To &hFFF
-	cpu.VRAM(i) = ppu.pattern0(i)
+	For i As Integer = 0 To 4095
+		cpu.VRAM(i) = ppu.pattern0(i) 
 	Next
-	For i As Integer = 0 To &hFFF
+	For i As Integer = 0 To 4095
 		cpu.VRAM(i) = ppu.pattern1(i) + &hFFF
 	Next
 	For i As Integer = 0 To &h3C0
@@ -214,6 +247,8 @@ For i As Integer = 0 To &hFFF
 	For i As Integer = 0 To &h10 
 		cpu.VRAM(i) = ppu.spritePalette(i) + &hF1F
 	Next
+	ppu.pattern0(5) =  &hff
+	cpu.VRAM(10) = ppu.pattern0(5)
 End Sub
 
 
