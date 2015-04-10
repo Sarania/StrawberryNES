@@ -178,41 +178,41 @@ Sub initcpu
 	cpu.flagB = 1
 	cpu.flagU = 1
 	
-	For i As Integer = 0 To &hFFF
-		cpu.memory(i) = ppu.pattern0(i)
+For i As Integer = 0 To &hFFF
+	cpu.VRAM(i) = ppu.pattern0(i)
 	Next
 	For i As Integer = 0 To &hFFF
-		cpu.memory(i) = ppu.pattern1(i) + &hFFF
+		cpu.VRAM(i) = ppu.pattern1(i) + &hFFF
 	Next
 	For i As Integer = 0 To &h3C0
-		cpu.memory(i) = ppu.nameTable0(i) + &h1FFF
+		cpu.VRAM(i) = ppu.nameTable0(i) + &h1FFF
 	Next
 	For i As Integer = 0 To &h40
-		cpu.memory(i) = ppu.atTable0(i) + &h23bF
+	cpu.VRAM(i) = ppu.atTable0(i) + &h23bF
 	Next
 	For i As Integer = 0 To &h3C0
-		cpu.memory(i) = ppu.nameTable1(i) + &h2bFF
+		cpu.VRAM(i) = ppu.nameTable1(i) + &h2bFF
 	Next
 	For i As Integer = 0 To &h40
-		cpu.memory(i) = ppu.atTable1(i) + &h27BF
+		cpu.VRAM(i) = ppu.atTable1(i) + &h27BF
 	Next
 	For I As Integer = 0 To &h3C0
-		cpu.memory(i) = ppu.nameTable2(i) + &h27FF
+		cpu.VRAM(i) = ppu.nameTable2(i) + &h27FF
 	Next
 	For i As Integer = 0 To &h40
-		cpu.memory(i) = ppu.atTable2(i) + &h2BBF
+		cpu.VRAM(i) = ppu.atTable2(i) + &h2BBF
 	Next
 	For i As Integer = 0 To &h3C0
-		cpu.memory(i) = ppu.nameTable3(i) + &h2BFF
+		cpu.VRAM(i) = ppu.nameTable3(i) + &h2BFF
 	Next
 	For i As Integer = 0 To &h40
-		cpu.memory(i) = ppu.atTable3(i) + &h2FBF
+		cpu.VRAM(i) = ppu.atTable3(i) + &h2FBF
 	Next
 	For i As Integer = 0 To &h10
-		cpu.memory(i) = ppu.imagePalette(i) + &h3EFF
+		cpu.VRAM(i) = ppu.imagePalette(i) + &h3EFF
 	Next
 	For i As Integer = 0 To &h10 
-		cpu.memory(i) = ppu.spritePalette(i) + &hF1F
+		cpu.VRAM(i) = ppu.spritePalette(i) + &hF1F
 	Next
 End Sub
 
