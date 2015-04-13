@@ -288,6 +288,9 @@ End Sub
 Sub status
 	Locate 1,1
 	Print "Emulator mode: " & emulatorMode
+	If emulatorMode = "NES" Then
+		Print "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024 
+	EndIf
 	Print "Total ops: " & totalops
 	Print "Ops per second: " &  CInt(totalops / (Timer-start)) & "                         "
 	Print
@@ -400,6 +403,23 @@ Sub loadROM
 	For i As Integer = 0 To romsize
 		cpu.memory(i+&h0600) = rom(i) ' yes this could overflow, this is just a temp setup!
 	Next
+	ElseIf emulatorMode = "NES" Then
+		If header.prgSize*16*1024 > 32768 Then 
+			Cls
+			Print "ROM too big until mapper implemented"
+			Sleep 2000,1
+			cae
+		EndIf
+		Cls
+		For i As Integer = 0 To header.prgSize*16*1024
+			cpu.memory(&h8000+i) = prgRom(i)
+		Next
+		If header.prgSize*16*1024 = 16384 Then
+			For i As Integer = 0 To header.prgSize*16*1024
+				cpu.memory(&hc000+i) = prgRom(i)
+			Next
+		EndIf
+		cpu.pc = 32768
 	End if
 End Sub
 
@@ -467,7 +487,7 @@ If debug > 0 Then
 	If FileExists("log.txt") Then Kill ("log.txt") ' erase log so we can write a new one
 EndIf
 
-cpu.pc = &h0600 ' set program counter to program start
+If emulatorMode = "6502" Then cpu.pc = &h0600 ' set program counter to program start
 
 start = Timer ' for opcode timing
 
@@ -617,7 +637,7 @@ Do
 		Close #22
 	EndIf
 
-	If CInt(totalops / (Timer-start)) > opgoal Then Sleep 10 ' try to maintain goal ops per second
+	If CInt(totalops / (Timer-start)) > opgoal Then Sleep 200 ' try to maintain goal ops per second
 Loop While Not MultiKey(SC_ESCAPE)
 Close
 CAE
