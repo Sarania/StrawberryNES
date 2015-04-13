@@ -95,15 +95,15 @@ Type cpus
 	'---------------------------------'
 	PPUctrl1 As UByte 'PPU control register 1
 	PPUctrl2 As UByte 'PPU control register 2
-   PPUstatus As UByte'PPU status register
+	PPUstatus As UByte'PPU status register
 	SPRAddr As UByte'Sprite addresss register
 	SPRIO As UByte 'Sprite I/O register
-   VRAMaddr1 As UByte 'VRAM address register 1
+	VRAMaddr1 As UByte 'VRAM address register 1
 	VRAMaddr2 As UByte 'VRAM address register 2
 	VRAMio As UByte 'VRAM I/O register
 	VRAM (0 To 65535) As Byte 'PPU VRAM
 	writeVRAM As Byte 'similar to the stack pointer but for VRAM
-	 
+
 End Type
 Type ppus
 	'VRAM Tables
@@ -134,9 +134,12 @@ Type headers
 End Type
 
 ReDim Shared As Byte rom(0 To 1) 'ROM
+ReDim Shared As Byte prgROM(0 To 1)
+ReDim Shared As Byte chrROM(0 To 1)
+ReDim Shared As Byte prgRAM(0 To 1)
 Dim Shared As String opHistory(0 To 255)
 Dim Shared cpu As cpus '6502 CPU
-Dim Shared ppu As ppus '2C02 PPU 
+Dim Shared ppu As ppus '2C02 PPU
 Dim Shared header As headers
 Dim Shared As String instruction, amode, msg, version
 Dim Shared As UInteger ticks, romsize, screenx, screeny, start, totalops
@@ -224,9 +227,9 @@ Sub initcpu
 	cpu.flagV = 0
 	cpu.flagB = 1
 	cpu.flagU = 1
-	
+
 	For i As Integer = 0 To 4095
-		cpu.VRAM(i) = ppu.pattern0(i) 
+		cpu.VRAM(i) = ppu.pattern0(i)
 	Next
 	For i As Integer = 0 To 4095
 		cpu.VRAM(i) = ppu.pattern1(i) + &hFFF
@@ -235,7 +238,7 @@ Sub initcpu
 		cpu.VRAM(i) = ppu.nameTable0(i) + &h1FFF
 	Next
 	For i As Integer = 0 To &h40
-	cpu.VRAM(i) = ppu.atTable0(i) + &h23bF
+		cpu.VRAM(i) = ppu.atTable0(i) + &h23bF
 	Next
 	For i As Integer = 0 To &h3C0
 		cpu.VRAM(i) = ppu.nameTable1(i) + &h2bFF
@@ -258,7 +261,7 @@ Sub initcpu
 	For i As Integer = 0 To &h10
 		cpu.VRAM(i) = ppu.imagePalette(i) + &h3EFF
 	Next
-	For i As Integer = 0 To &h10 
+	For i As Integer = 0 To &h10
 		cpu.VRAM(i) = ppu.spritePalette(i) + &hF1F
 	Next
 	ppu.pattern0(5) =  &hff
@@ -370,24 +373,34 @@ Sub loadROM
 	Next
 	Close #1
 
+	'read header
+	open progname for binary as #1
+	get #1, 1, header.signature()
+	Get #1, 5, header.prgSize
+	Get #1, 6, header.chrSize
+	Get #1, 7, header.Flags6
+	Get #1, 8, header.Flags7
+	Get #1, 9, header.prgRAMSize
+	Get #1, 10, header.Flags9
+	Get #1, 11, header.flags10
+	Get #1, 12, header.zeros()
+	
+	If Chr(header.signature(0)) = "N" And Chr(header.signature(1)) = "E" And Chr(header.signature(2)) = "S" Then
+		ReDim As Byte PrgROM(header.prgSize*16*1024)
+		ReDim As Byte chrROM(header.chrSize*8*1024)
+		ReDim As Byte prgRAM(header.prgRAMSize*8*1024)
+		Get #1, 17, prgROM()
+		Get #1, 17 + header.prgSize, chrROM()
+		emulatorMode = "NES"
+	End If
+	Close #1
+	
+	If emulatorMode= "6502" Then
 	'copy rom to cpu memory
 	For i As Integer = 0 To romsize
 		cpu.memory(i+&h0600) = rom(i) ' yes this could overflow, this is just a temp setup!
 	Next
-
-   'read header
-   open progname for binary as #1
-   get #1, 1, header.signature()
-   Get #1, 5, header.prgSize
-   Get #1, 6, header.chrSize
-   Get #1, 7, header.Flags6
-   Get #1, 8, header.Flags7
-   Get #1, 9, header.prgRAMSize
-   Get #1, 10, header.Flags9
-   Get #1, 11, header.flags10
-   Get #1, 12, header.zeros()
-   Close #1
-   If Chr(header.signature(0)) = "N" And Chr(header.signature(1)) = "E" And Chr(header.signature(2)) = "S" Then emulatorMode = "NES"
+	End if
 End Sub
 
 Sub savestate
