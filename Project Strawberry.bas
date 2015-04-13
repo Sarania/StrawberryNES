@@ -142,6 +142,8 @@ Dim Shared As String instruction, amode, msg, version
 Dim Shared As UInteger ticks, romsize, screenx, screeny, start, totalops
 Dim Shared As Single lastframetime
 Dim Shared As Any Ptr strawberry
+Dim Shared As String emulatorMode
+emulatorMode = "6502"
 lastframetime=Timer
 version= "0.30 alpha"
 #Include Once "inc/misc.bi" 'misc stuff
@@ -282,6 +284,7 @@ End Sub
 
 Sub status
 	Locate 1,1
+	Print "Emulator mode: " & emulatorMode
 	Print "Total ops: " & totalops
 	Print "Ops per second: " &  CInt(totalops / (Timer-start)) & "                         "
 	Print
@@ -384,6 +387,7 @@ Sub loadROM
    Get #1, 11, header.flags10
    Get #1, 12, header.zeros()
    Close #1
+   If Chr(header.signature(0)) = "N" And Chr(header.signature(1)) = "E" And Chr(header.signature(2)) = "S" Then emulatorMode = "NES"
 End Sub
 
 Sub savestate
