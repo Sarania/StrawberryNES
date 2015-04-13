@@ -121,11 +121,23 @@ Type ppus
 	spritePalette(0 To 15) As Integer 'Spritie Palette
 End Type
 
+Type headers
+	signature(0 To 3) As Byte
+	prgSize As Byte ' in 16KB pages
+	chrSize As Byte ' in 8KB pages
+	Flags6 As Byte
+	Flags7 As Byte
+	prgRAMSize As Byte ' in 8KB pages
+	Flags9 As Byte
+	flags10 As Byte
+	zeros(0 To 4) As byte
+End Type
 
 ReDim Shared As Byte rom(0 To 1) 'ROM
 Dim Shared As String opHistory(0 To 255)
 Dim Shared cpu As cpus '6502 CPU
 Dim Shared ppu As ppus '2C02 PPU 
+Dim Shared header As headers
 Dim Shared As String instruction, amode, msg, version
 Dim Shared As UInteger ticks, romsize, screenx, screeny, start, totalops
 Dim Shared As Single lastframetime
@@ -360,6 +372,18 @@ Sub loadROM
 		cpu.memory(i+&h0600) = rom(i) ' yes this could overflow, this is just a temp setup!
 	Next
 
+   'read header
+   open progname for binary as #1
+   get #1, 1, header.signature()
+   Get #1, 5, header.prgSize
+   Get #1, 6, header.chrSize
+   Get #1, 7, header.Flags6
+   Get #1, 8, header.Flags7
+   Get #1, 9, header.prgRAMSize
+   Get #1, 10, header.Flags9
+   Get #1, 11, header.flags10
+   Get #1, 12, header.zeros()
+   Close #1
 End Sub
 
 Sub savestate
