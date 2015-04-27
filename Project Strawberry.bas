@@ -89,6 +89,7 @@ Type cpus
 	PC As UShort 'program counter
 	sp As UShort = 511 'stack pointer
 	memory(0 To 65535) As Byte 'RAM
+	nesReset As Integer 'reset vector
 	'stack = 256 - 511
 	'---------------------------------'
 	'          PPU Registers          '
@@ -105,21 +106,7 @@ Type cpus
 	writeVRAM As Byte 'similar to the stack pointer but for VRAM
 
 End Type
-Type ppus
-	'VRAM Tables
-	pattern0 (0 To 4095) As Integer 'Pattern Table 0
-	pattern1 (0 To 4095) As Integer 'Pattern Table 1
-	atTable0 (0 To 959) As Integer  'Attrubute Table0
-	nameTable0 (0 To 63) As Integer 'Name Table0
-	atTable1 (0 To 959) As Integer  'Attribute Table1
-	nameTable1 (0 To 63)As Integer  'Name Table1
-	atTable2 (0 To 959) As Integer  'Attribute Table2
-	nameTable2 (0 To 63)As Integer  'Name Table2
-	atTable3 (0 To 959) As Integer  'Attribute Table3
-	nameTable3 (0 To 63) As Integer 'Name Table3
-	imagePalette (0 To 15) As Integer'Image Palette
-	spritePalette(0 To 15) As Integer 'Spritie Palette
-End Type
+
 
 Type headers
 	signature(0 To 3) As Byte
@@ -139,7 +126,7 @@ ReDim Shared As Byte chrROM(0 To 1)
 ReDim Shared As Byte prgRAM(0 To 1)
 Dim Shared As String opHistory(0 To 255)
 Dim Shared cpu As cpus '6502 CPU
-Dim Shared ppu As ppus '2C02 PPU
+
 Dim Shared header As headers
 Dim Shared As String instruction, amode, msg, version
 Dim Shared As UInteger ticks, romsize, screenx, screeny, start, totalops
@@ -186,87 +173,19 @@ Sub initcpu
 	For i As Integer = 0 To 65535
 		cpu.memory(i) = 0
 	Next
-	For i As Integer = 0 To 65535
-		cpu.VRAM(i) = 0
-	Next
-	For i As Integer = 0 To 4095
-		ppu.pattern0(i) = 0
-	Next
-	For i As Integer = 0 To 4095
-		ppu.pattern1(i) = 0
-	Next
-	For i As Integer = 0 To 959
-		ppu.atTable0(i) = 0
-	Next
-	For i As Integer = 0 To 63
-		ppu.nameTable0(i) = 0
-	Next
-	For i As Integer = 0 To 959
-		ppu.atTable1(i) = 0
-	Next
-	For i As Integer = 0 To 63
-		ppu.nameTable1(i) = 0
-	Next
-	For i As Integer = 0 To 959
-		ppu.atTable2(i) = 0
-	Next
-	For i As Integer = 0 To 63
-		ppu.nameTable2(i) = 0
-	Next
-	For i As Integer = 0 To 959
-		ppu.atTable3(i) = 0
-	Next
-	For i As Integer = 0 To 63
-		ppu.nameTable3(i) = 0
-	Next
+	
 	cpu.flagS = 0
 	cpu.flagZ = 0
-	cpu.flagI = 0
+	cpu.flagI = 1
 	cpu.flagD = 0
 	cpu.flagC = 0
 	cpu.flagV = 0
 	cpu.flagB = 1
 	cpu.flagU = 1
-
-	For i As Integer = 0 To 4095
-		cpu.VRAM(i) = ppu.pattern0(i)
-	Next
-	For i As Integer = 0 To 4095
-		cpu.VRAM(i) = ppu.pattern1(i) + &hFFF
-	Next
-	For i As Integer = 0 To &h3C0
-		cpu.VRAM(i) = ppu.nameTable0(i) + &h1FFF
-	Next
-	For i As Integer = 0 To &h40
-		cpu.VRAM(i) = ppu.atTable0(i) + &h23bF
-	Next
-	For i As Integer = 0 To &h3C0
-		cpu.VRAM(i) = ppu.nameTable1(i) + &h2bFF
-	Next
-	For i As Integer = 0 To &h40
-		cpu.VRAM(i) = ppu.atTable1(i) + &h27BF
-	Next
-	For I As Integer = 0 To &h3C0
-		cpu.VRAM(i) = ppu.nameTable2(i) + &h27FF
-	Next
-	For i As Integer = 0 To &h40
-		cpu.VRAM(i) = ppu.atTable2(i) + &h2BBF
-	Next
-	For i As Integer = 0 To &h3C0
-		cpu.VRAM(i) = ppu.nameTable3(i) + &h2BFF
-	Next
-	For i As Integer = 0 To &h40
-		cpu.VRAM(i) = ppu.atTable3(i) + &h2FBF
-	Next
-	For i As Integer = 0 To &h10
-		cpu.VRAM(i) = ppu.imagePalette(i) + &h3EFF
-	Next
-	For i As Integer = 0 To &h10
-		cpu.VRAM(i) = ppu.spritePalette(i) + &hF1F
-	Next
-	ppu.pattern0(5) =  &hff
-	cpu.VRAM(10) = ppu.pattern0(5)
+	
+	
 End Sub
+
 
 
 Function readmem(ByVal addr As LongInt, ByVal numbytes As UInteger = 1) As UInteger
@@ -418,8 +337,15 @@ Sub loadROM
 			For i As Integer = 0 To header.prgSize*16*1024
 				cpu.memory(&hc000+i) = prgRom(i)
 			Next
+		If header.chrSize*8*1024 = 8092 Then
+			For i as Integer = 0 To header.chrSize*8*1024
+				cpu.VRAM(i) = chrRom(i)
+			Next
 		EndIf
-		cpu.pc = 32768
+		EndIf
+		cpu.flagI = 1
+		cpu.pc = (cpu.memory(&hFFFD) Shl 8) Or cpu.memory(&hFFFC)
+
 	End if
 End Sub
 
@@ -494,6 +420,7 @@ start = Timer ' for opcode timing
 'main
 Do
 	keycheck
+	If MultiKey(SC_G) Then cpu.memory(&h4016) = 1
 	cpu.oldpc = cpu.pc ' set this for storing debug information
 	decode(cpu.memory(cpu.pc)) ' decode binary to opcode and address mode
 	cpu.pc+=1

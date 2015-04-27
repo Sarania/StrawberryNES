@@ -206,7 +206,7 @@ Sub INS_BRK
 	'Print instruction
 	'Print amode
 	'Print Hex(cpu.pc)
-	cpu.pc += 1
+	cpu.pc = (cpu.memory(&hFFFF) Shl 8)Or cpu.memory(&hFFFE)
 	'Sleep 1000,1
 	'Sleep
 	'Sleep
