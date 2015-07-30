@@ -60,13 +60,8 @@ Declare Sub fprint(ByVal x As Integer, ByVal y As Integer, ByVal text As String,
 Declare Sub loadini
 Declare Sub savestate
 Declare Sub loadstate
-Declare Sub NMI 'Non Maskable Interrrupt
-Declare Sub IRQ 'Interrupt Requeset
-Declare Sub vBlank 
-Declare Sub DMA 'Direct Memory Access
 
 Type cpus
-
 	'------------------------'
 	'   6502 Registers/MEM   '
 	'------------------------'
@@ -94,18 +89,21 @@ Type cpus
 	PC As UShort 'program counter
 	sp As UShort = 511 'stack pointer
 	memory(0 To 65535) As Byte 'RAM
-	resetV As Integer 'Reset Vector
-	irqV As Integer 'IRQ Vector
-	nmiV As Integer 'NMI Vevtor
+	nesReset As Integer 'reset vector
 	'stack = 256 - 511
 	'---------------------------------'
 	'          PPU Registers          '
 	'---------------------------------'
-   'PPU Control Register. 
-   sprRAM (0 To &hFF) As Byte 'Sprite RAM
+	PPUctrl1 As UByte 'PPU control register 1
+	PPUctrl2 As UByte 'PPU control register 2
+	PPUstatus As UByte'PPU status register
+	SPRAddr As UByte'Sprite addresss register
+	SPRIO As UByte 'Sprite I/O register
+	VRAMaddr1 As UByte 'VRAM address register 1
+	VRAMaddr2 As UByte 'VRAM address register 2
+	VRAMio As UByte 'VRAM I/O register
 	VRAM (0 To 65535) As Byte 'PPU VRAM
-	writeVRAM As Byte 'VRAM Pointer
-	flipflop As Byte
+	writeVRAM As Byte 'similar to the stack pointer but for VRAM
 
 End Type
 
@@ -127,10 +125,9 @@ ReDim Shared As Byte prgROM(0 To 1)
 ReDim Shared As Byte chrROM(0 To 1)
 ReDim Shared As Byte prgRAM(0 To 1)
 Dim Shared As String opHistory(0 To 255)
-
+Dim Shared cpu As cpus '6502 CPU
 
 Dim Shared header As headers
-Dim Shared cpu As cpus
 Dim Shared As String instruction, amode, msg, version
 Dim Shared As UInteger ticks, romsize, screenx, screeny, start, totalops
 Dim Shared As Single lastframetime
@@ -172,23 +169,21 @@ End Sub
 
 
 Sub initcpu
-	'initialize CPU and RAM
-cpu.PS = &h34 
-cpu.acc = 0 
-cpu.X = 0    
-cpu.Y = 0    
-cpu.SP = &hFD 
-
-For i As Integer = 0 to &hFFFF
-cpu.memory(i) = 0
-next
-For i As Integer = 0 to &h7FF
-cpu.memory(i) = &hFF
-next
-cpu.memory(&h0008) = &hF7
-cpu.memory(&h0009) = &hEF
-cpu.memory(&h000a) = &hDF
-cpu.memory(&h000f) = &hBF
+	'initialize cpu and ram
+	For i As Integer = 0 To 65535
+		cpu.memory(i) = 0
+	Next
+	
+	cpu.flagS = 0
+	cpu.flagZ = 0
+	cpu.flagI = 1
+	cpu.flagD = 0
+	cpu.flagC = 0
+	cpu.flagV = 0
+	cpu.flagB = 1
+	cpu.flagU = 1
+	
+	
 End Sub
 
 
@@ -348,18 +343,12 @@ Sub loadROM
 			Next
 		EndIf
 		EndIf
-		cpu.resetV = cpu.memory(&hFFFD) And &hFF
-		cpu.pc = (cpu.resetV Shl 8) Or (cpu.memory(&hFFFC)And &hFF)
+		cpu.flagI = 1
+		cpu.pc = (cpu.memory(&hFFFD) Shl 8) Or cpu.memory(&hFFFC)
+
 	End if
 End Sub
-Sub IRQ
-		cpu.irqV = cpu.memory(&hFFFF) And &hFF
-		cpu.pc = (cpu.irqV Shl 8) Or (cpu.memory(&hFFFE)And &hFF)
-End Sub
-Sub NMI
-	cpu.nmiV = cpu.memory(&hFFFB) And &hFF
-	cpu.pc = (cpu.nmiV Shl 8) Or (cpu.memory(&hFFFA)And &hFF)	
-End Sub
+
 Sub savestate
 	Dim As Integer f = FreeFile
 	If FileExists("strawberry.state") Then Kill "strawberry.state"
@@ -413,20 +402,6 @@ Sub CAE
 	Close
 	End
 End Sub
-Sub vBlank
-cpu.flagI = 0 
-cpu.irqV = cpu.memory(&hFFFF) And &hFF
-cpu.pc = (cpu.irqV Shl 8) Or (cpu.memory(&hFFFE)And &hFF)
-	
-	
-End Sub
-Sub DMA
-Dim dmatmp As Byte 
-dmatmp = cpu.memory(&h4014) * 100 
-For i As Integer = 0 To &hFF
-	cpu.sprRAM(i) = cpu.memory(dmatmp+i)
-Next
-End Sub
 
 ScreenRes screenx,screeny,32
 strawberry = freeimage_load_fb(CurDir & "/Res/strawberry.png", TRUE) ' load cute strawberry :)
@@ -445,6 +420,7 @@ start = Timer ' for opcode timing
 'main
 Do
 	keycheck
+	If MultiKey(SC_G) Then cpu.memory(&h4016) = 1
 	cpu.oldpc = cpu.pc ' set this for storing debug information
 	decode(cpu.memory(cpu.pc)) ' decode binary to opcode and address mode
 	cpu.pc+=1
@@ -566,38 +542,7 @@ Do
 			msg = "decoder broken somehow, received " & instruction
 	End Select
 	totalops+=1
-	'///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	'												         PPU Execution Block 
-
-	
-	'PPU Reads/Writes are done through the PPU Control Registers at $2006/$2007
-	
-	'Update PPU Registers
-	
-	
-	cpu.sprRAM(cpu.memory(&h2003)) = cpu.memory(&h20004)'SPR-RAM Write
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	'cpu.memory(&hfe) = CInt(Rnd*255) ' random number generator for simple 6502 programs
+	cpu.memory(&hfe) = CInt(Rnd*255) ' random number generator for simple 6502 programs
 
 	If debug = 0 Then
 		If (monitor = 1 And CInt(totalops / (Timer-start)) > opgoal) Or (totalops = 1 And monitor = 1) Then status
@@ -622,6 +567,4 @@ Do
 	If CInt(totalops / (Timer-start)) > opgoal Then Sleep 200 ' try to maintain goal ops per second
 Loop While Not MultiKey(SC_ESCAPE)
 Close
-
-
 CAE
