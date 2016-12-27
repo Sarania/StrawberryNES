@@ -421,7 +421,10 @@ If emulatorMode = "6502" Then cpu.pc = &h0600 ' set program counter to program s
 start = Timer ' for opcode timing
 
 'main
-Do
+Do 
+	'====================================REMOVE THIS======================================================
+	If totalops = 27000 Then cpu.memory(&h2002) = &h80 'Temporary tell the system that the PPU is warmed up
+	'====================================REMOVE THIS======================================================
 	 keycheck
 	'If MultiKey(SC_G) Then cpu.memory(&h4016) = 1
 	cpu.oldpc = cpu.pc ' set this for storing debug information
@@ -594,15 +597,16 @@ Do
 		Wend
 		While MultiKey(SC_SPACE): Sleep 10: Wend
 	EndIf
+
 	'check for keys
-	If debug > 0 Then
-		Open "log.txt" For Append As #22
-		Print #22, Hex(cpu.oldpc,4) & ": " & instruction & " " & amode & " $" & Hex(taddr,4) & " $" & Hex(*tdata,2)
-		Close #22
-	EndIf
+	'If debug > 0 And totalops > 2 Then
+   '	Open "log.txt" for Append As #22
+	'	Print #22, Hex(cpu.oldpc,4) & ": " & instruction & " " & amode & " $" & Hex(taddr,4) & " $" & Hex(*tdata,2)
+	'	Close #22
+	'EndIf
+
 
 	If CInt(totalops / (Timer-start)) > opgoal Then Sleep 200 ' try to maintain goal ops per second
-	
 Loop While Not MultiKey(SC_ESCAPE)
 Close
 CAE
