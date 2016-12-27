@@ -22,6 +22,10 @@ Declare Sub keycheck
 
 Sub keycheck
 	'This  is the keycheck for the "simple" 6502 programs. Basically it's memory mapped IO. This stuff will need to go when we work on NES/Atari/whatever
+	If MultiKey(SC_PAGEUP) Then
+		If debug = 1 Then debug = 0 Else debug = 1
+	While MultiKey(SC_PAGEUP):Sleep 10: wend
+	EndIf
 	If MultiKey(SC_w) Then
 		cpu.memory(&hff) = Asc("w")
 	elseIf MultiKey(SC_a) Then
@@ -109,7 +113,7 @@ Sub simplegraphics
 			EndIf
 			For z As Integer = sf To 1 Step -1
 				' Draw a line z number of times to make a giant pixel. This is how we are scaling
-				Line simplebuff, (dx*sf-sf,dy*sf-z)-(dx*sf,dy*sf-z), clr(cpu.memory(&h200 + memcount))
+				Line simplebuff, (dx*sf-sf,dy*sf-z)-(dx*sf,dy*sf-z), clr(cpu.memory(&h200 + memcount)And &hf)
 			Next
 		Next
 	next

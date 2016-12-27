@@ -39,7 +39,9 @@ This document last updated at: 19:21 CST 3/28/2014
 Copyright 2014 Blyss Sarania
 '/
 Randomize Timer
-Dim Shared debug As UByte = 0 ' If debug is set, stepping mode is enabled and the emulation pauses after each opcode is executed
+Dim Shared debug As UByte = 1
+Dim Shared As uinteger opstoskip = 1
+Dim Shared As uinteger nextskip = 1 ' If debug is set, stepping mode is enabled and the emulation pauses after each opcode is executed
 Dim Shared monitor As UByte = 1 ' If monitor is set you can see the debug infos, if not, the graphics take up the whole window
 Dim Shared opGoal As UInteger ' Ops per second is limited to this number
 #Include Once "crt.bi" 'C runtime functions
@@ -210,7 +212,7 @@ Sub status
 	If emulatorMode = "NES" Then
 		Print "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024 
 	EndIf
-	Print "Total ops: " & totalops
+	Print "Total ops: " & totalops & " | Stepping by: " & opstoskip & "                     "
 	Print "Ops per second: " &  CInt(totalops / (Timer-start)) & "                         "
 	Print
 	Print "Registers:                                           "
@@ -227,6 +229,7 @@ Sub status
 	Print "|" & cpu.flagS & "|" & cpu.flagV & "|" & cpu.flagU & "|" & cpu.flagB & "|" & cpu.flagD & "|" & cpu.flagI & "|" & cpu.flagZ & "|" & cpu.flagC & "|" & "                         "
 	Print "|_______________|"   & "                         "
 	Print
+	Print "Processor status: " & cpu.ps & " " & " (" & Hex(cpu.ps) & ")"
 	Print "Message: "; msg & "  														"
 	msg = "                                                                 "
 	Print "                                                                             "
@@ -419,8 +422,8 @@ start = Timer ' for opcode timing
 
 'main
 Do
-	keycheck
-	If MultiKey(SC_G) Then cpu.memory(&h4016) = 1
+	 keycheck
+	'If MultiKey(SC_G) Then cpu.memory(&h4016) = 1
 	cpu.oldpc = cpu.pc ' set this for storing debug information
 	decode(cpu.memory(cpu.pc)) ' decode binary to opcode and address mode
 	cpu.pc+=1
@@ -540,9 +543,22 @@ Do
 		Case Else
 			Beep
 			msg = "decoder broken somehow, received " & instruction
+			Cls
+			Print msg
+			Print Hex(cpu.pc)
+			Sleep 5000,1
+			sleep
 	End Select
 	totalops+=1
 	cpu.memory(&hfe) = CInt(Rnd*255) ' random number generator for simple 6502 programs
+	If cpu.flagC = 1 Then cpu.ps = BitSet(cpu.ps,0) Else cpu.ps = BitReset(cpu.ps,0)
+	If cpu.flagZ = 1 Then cpu.ps = BitSet(cpu.ps,1) Else cpu.ps = BitReset(cpu.ps,1)
+	If cpu.flagI = 1 Then cpu.ps = BitSet(cpu.ps,2) Else cpu.ps = BitReset(cpu.ps,2)
+	If cpu.flagD = 1 Then cpu.ps = BitSet(cpu.ps,3) Else cpu.ps = BitReset(cpu.ps,3)
+	If cpu.flagB = 1 Then cpu.ps = BitSet(cpu.ps,4) Else cpu.ps = BitReset(cpu.ps,4)
+	If cpu.flagU = 1 Then cpu.ps = BitSet(cpu.ps,5) Else cpu.ps = BitReset(cpu.ps,5)
+	If cpu.flagV = 1 Then cpu.ps = BitSet(cpu.ps,6) Else cpu.ps = BitReset(cpu.ps,6)
+	If cpu.flagS = 1 Then cpu.ps = BitSet(cpu.ps,7) Else cpu.ps = BitReset(cpu.ps,7)
 
 	If debug = 0 Then
 		If (monitor = 1 And CInt(totalops / (Timer-start)) > opgoal) Or (totalops = 1 And monitor = 1) Then status
@@ -554,10 +570,31 @@ Do
 		simplegraphics
 		lastframetime= Timer
 	End If
-
-	If debug = 1 Then Sleep
-	' check for keys
-
+   nextskip -=1
+	If debug = 1 And nextskip = 0 Then
+		nextskip = opstoskip
+		
+		
+		While Not MultiKey(SC_SPACE) And Not MultiKey(SC_ESCAPE) And Not MultiKey(SC_PAGEUP)
+			Sleep 10
+			If MultiKey(SC_BACKSPACE) Then
+				If opstoskip = 1 Then
+					opstoskip = 10
+				ElseIf opstoskip = 10 Then 
+					opstoskip = 100
+				ElseIf opstoskip = 100 Then
+					opstoskip = 1000
+				ElseIf opstoskip = 1000 then
+               opstoskip = 1
+				EndIf
+				nextskip = opstoskip
+				Locate 2,1: Print "Total ops: " & totalops & " | Stepping by: " & opstoskip & "                       "
+				While MultiKey(SC_BACKSPACE):Sleep 10: Wend
+			EndIf
+		Wend
+		While MultiKey(SC_SPACE): Sleep 10: Wend
+	EndIf
+	'check for keys
 	If debug > 0 Then
 		Open "log.txt" For Append As #22
 		Print #22, Hex(cpu.oldpc,4) & ": " & instruction & " " & amode & " $" & Hex(taddr,4) & " $" & Hex(*tdata,2)
@@ -565,6 +602,7 @@ Do
 	EndIf
 
 	If CInt(totalops / (Timer-start)) > opgoal Then Sleep 200 ' try to maintain goal ops per second
+	
 Loop While Not MultiKey(SC_ESCAPE)
 Close
 CAE
