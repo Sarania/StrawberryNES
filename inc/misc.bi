@@ -40,15 +40,6 @@ Sub keycheck
 		cpu.memory(&hff)=Asc(" ")
 	EndIf
 
-	If MultiKey(SC_tilde) Then ' change whether the debug info is displayed or not
-		Cls
-		If monitor = 1 Then monitor = 0 Else If monitor = 0 Then monitor = 1
-		if monitor = 1 then status
-		While MultiKey(SC_tilde)
-			'nothing
-		Wend
-	EndIf
-
 	If MultiKey(SC_plus) Then ' increase emulation speed
 		opgoal+=500
 		While MultiKey(SC_plus)
@@ -74,14 +65,14 @@ Sub keycheck
 	End If
 
 	If MultiKey(SC_f1)Then  'save state
-		savestate
+		'savestate
 		While MultiKey(SC_F1)
 			'nothing
 		Wend
 	End If
 
 	If MultiKey(SC_f2)Then  'load state
-		loadstate
+		'loadstate
 		While MultiKey(SC_F2)
 			'nothing
 		Wend
@@ -101,8 +92,7 @@ End Sub
 
 Sub simplegraphics
 	'Simple graphics renderer. As with keycheck, this is only useful for the "simple" 6502 machine. The graphics are memory mapped.
-	Dim As integer	memcount = -1, sf
-	If monitor = 0 Then sf = (screeny/32) Else sf = 8
+	Dim As integer	memcount = -1, sf = 8
 	Dim As fb.image Ptr simplebuff
 	simplebuff = ImageCreate(32*sf,32*sf,RGB(0,0,0))
 	For dy As Integer = 1 To 32
@@ -118,7 +108,6 @@ Sub simplegraphics
 		Next
 	next
 	Line simplebuff, (0, 0)-(32*sf-1, 32*sf-1), RGB(255,255,255), b ' draw the box around the graphic area
-	If monitor = 1 Then Put (screenx-(32*sf)-25,screeny-(32*sf)-25), simplebuff, _ 'long line break
-	PSet Else Put ((screenx/2)-((sf*32)/2),0),simplebuff,PSet ' put the image buffer to screen
+	Put (screenx-(32*sf)-25,screeny-(32*sf)-25), simplebuff, PSet
 	ImageDestroy(simplebuff) ' Get rid of the buffer, or else memory leaks!
 End Sub

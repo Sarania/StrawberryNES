@@ -16,7 +16,7 @@ License:
     * I respectfully request but do not require that should you improve the software or make
 	 a derivative work, you notify me of it. My contact information is generally included
 	in the program's source. (Blyss.Sarania@Gmail.com)
-
+.
 I am pretty permissive with my stuff, but there ARE some things you can not do with it:
 
     * You may NOT sell the software, in whole or part.
@@ -39,29 +39,28 @@ This document last updated at: 19:21 CST 3/28/2014
 Copyright 2014 Blyss Sarania
 '/
 Randomize Timer
-Dim Shared debug As UByte = 1
-Dim Shared As uinteger opstoskip = 1
-Dim Shared As uinteger nextskip = 1 ' If debug is set, stepping mode is enabled and the emulation pauses after each opcode is executed
-Dim Shared monitor As UByte = 1 ' If monitor is set you can see the debug infos, if not, the graphics take up the whole window
-Dim Shared opGoal As UInteger ' Ops per second is limited to this number
-#Include Once "crt.bi" 'C runtime functions
-#Include Once "fbgfx.bi" 'Freebasic graphics library
-Using fb ' Namespace
+#Include Once "fbgfx.bi"
+Using fb
 #Include Once "file.bi" 'File functions
 #Include Once "Freeimage.bi" ' Freeimage library
 #Include Once "inc/freetofb.bi" 'Easily use Freeimage images in Freebasic
 #Include Once "zlib.bi"
 #Include Once "Inc/freetypeclass.bi" 'fontz
-Declare Function readmem(ByVal addr As LongInt, ByVal numbytes As UInteger = 1) As UInteger ' for reading memory
-Declare Sub writemem(ByVal addr As LongInt, ByVal value As Byte) ' for writing memory
-Declare Sub status ' debug infos
-Declare Sub initcpu ' reset cpu
-Declare Sub loadROM ' load ROM
-Declare Sub CAE ' (C)leanup(A)nd(E)xit
-Declare Sub fprint(ByVal x As Integer, ByVal y As Integer, ByVal text As String, ByVal c As Integer = RGB(255,255,255))
-Declare Sub loadini
-Declare Sub savestate
-Declare Sub loadstate
+Declare Function readmem(ByVal addr As LongInt, ByVal numbytes As UInteger = 1) As ULongInt ' for reading memory
+Declare Sub writemem(ByVal addr As LongInt, byval value As UByte) 'write a value to NES memory
+Declare Sub fprint(ByVal x As Integer, ByVal y As Integer, ByVal text As String, ByVal c As Integer = RGB(255,255,255))'Print to the screen with a font
+Declare Sub status 'print various status stuff to the screen
+Declare Sub initcpu 'initialize the 6502
+Declare Sub loadROM 'load a ROM in to memory
+Declare Sub CAE 'Cleanup and exit
+Declare Sub loadini 'Load the ini file
+Dim Shared As UByte debug
+Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops
+Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
+Dim Shared As Single start, lastframetime
+Dim Shared As Any Ptr strawberry
+Dim Shared As ULongInt Ptr suspicious_pointer
+Dim Shared As UInteger boobs
 
 Type cpus
 	'------------------------'
@@ -90,54 +89,29 @@ Type cpus
 	flagC As UByte ' Carry flag
 	PC As UShort 'program counter
 	sp As UShort = 511 'stack pointer
-	memory(0 To 65535) As Byte 'RAM
-	nesReset As Integer 'reset vector
-	'stack = 256 - 511
-	'---------------------------------'
-	'          PPU Registers          '
-	'---------------------------------'
-	PPUctrl1 As UByte 'PPU control register 1
-	PPUctrl2 As UByte 'PPU control register 2
-	PPUstatus As UByte'PPU status register
-	SPRAddr As UByte'Sprite addresss register
-	SPRIO As UByte 'Sprite I/O register
-	VRAMaddr1 As UByte 'VRAM address register 1
-	VRAMaddr2 As UByte 'VRAM address register 2
-	VRAMio As UByte 'VRAM I/O register
-	VRAM (0 To 65535) As Byte 'PPU VRAM
-	writeVRAM As Byte 'similar to the stack pointer but for VRAM
-
+	memory(0 To 65535) As UByte 'RAM
+	'nesReset As Integer 'reset vector
 End Type
-
 
 Type headers
-	signature(0 To 3) As Byte
-	prgSize As Byte ' in 16KB pages
-	chrSize As Byte ' in 8KB pages
-	Flags6 As Byte
-	Flags7 As Byte
-	prgRAMSize As Byte ' in 8KB pages
-	Flags9 As Byte
-	flags10 As Byte
-	zeros(0 To 4) As byte
+	signature(0 to 3) As Byte
+	prgSize As UByte 'in 16KB pages
+	chrSize As UByte 'in 8KB pages
+	Flags6 As UByte
+	Flags7 As UByte
+	prgRAMSize As UByte 'in 8kb pages
+	Flags9 As UByte
+	Flags10 As UByte
+	zeros (0 To 4) As ubyte
 End Type
 
-ReDim Shared As Byte rom(0 To 1) 'ROM
-ReDim Shared As Byte prgROM(0 To 1)
-ReDim Shared As Byte chrROM(0 To 1)
-ReDim Shared As Byte prgRAM(0 To 1)
-Dim Shared As String opHistory(0 To 255)
-Dim Shared cpu As cpus '6502 CPU
-
+ReDim Shared As UByte rom(0 To 1)
+ReDim Shared As UByte prgROM(0 To 1)
+ReDim Shared As UByte chrROM(0 To 1)
+ReDim Shared As UByte prgRAM(0 To 1)
+Dim Shared cpu as cpus '6502 CPU
 Dim Shared header As headers
-Dim Shared As String instruction, amode, msg, version
-Dim Shared As UInteger ticks, romsize, screenx, screeny, start, totalops
-Dim Shared As Single lastframetime
-Dim Shared As Any Ptr strawberry
-Dim Shared As String emulatorMode
-emulatorMode = "6502"
-lastframetime=Timer
-version= "0.30 alpha"
+
 #Include Once "inc/misc.bi" 'misc stuff
 #Include Once "inc/6502_instruction_set.bi" ' contains the instruction set
 #Include Once "inc/decoder.bi" ' decodes hex opcodes to asm
@@ -146,7 +120,9 @@ loadini ' need to load it here because of font stuff
 ChDir ExePath
 ChDir("..")
 
-'font stuff
+/'==============================================================================
+                                       font stuff
+================================================================================'/
 Dim As Integer fonts = 18
 'compute font based on screeny, sketchy but works reasonably well
 fonts = CInt(screeny/32)
@@ -162,49 +138,19 @@ font.set_screen_size(screenx,screeny)
 font.set_size(fonts)
 font.set_color(RGB(255,255,255))
 font.set_back_color(RGB(0,0,0))
+/'==============================================================================
+                                     End font stuff
+================================================================================'/
+emulatorMode = "6502"
+lastframetime = timer
+version = "0.40 alpha"
+debug = 1
+opstoskip = 1
+nextskip = 1
 
-Sub fprint(ByVal x As Integer, ByVal y As Integer, ByVal text As String, ByVal c As Integer = RGB(255,255,255))
-	font.set_color(c)
-	font.print_text(x, y, text)
-End Sub
-
-
-
-Sub initcpu
-	'initialize cpu and ram
-	For i As Integer = 0 To 65535
-		cpu.memory(i) = 0
-	Next
-	
-	cpu.flagS = 0
-	cpu.flagZ = 0
-	cpu.flagI = 1
-	cpu.flagD = 0
-	cpu.flagC = 0
-	cpu.flagV = 0
-	cpu.flagB = 1
-	cpu.flagU = 1
-	
-	
-End Sub
-
-
-
-Function readmem(ByVal addr As LongInt, ByVal numbytes As UInteger = 1) As UInteger
-	'read from memory
-	Dim As String strbytes
-	For i As Integer = numbytes-1 To 0 Step -1
-		strbytes = strbytes & Hex(cpu.memory(addr+i),2)
-	Next
-	'If addr = cpu.pc Then cpu.pc +=numbytes
-	Return ValInt("&h" & strbytes)
-End Function
-
-Sub writemem(ByVal addr As LongInt, ByVal value As Byte)
-	'write to memory
-	cpu.memory(addr) = value
-End Sub
-
+/'==============================================================================
+                                       Subroutines
+================================================================================'/
 
 Sub status
 	Locate 1,1
@@ -239,18 +185,50 @@ Sub status
 		Print opHistory(i) & "               "
 	Next
 	fprint(2, screeny-60, "Project Strawberry",RGB(255,0,0))
-	fprint(2, screeny-35, "Version 0.30 alpha ")
+	fprint(2, screeny-35, "Version 0.40 alpha ")
 	fprint(2, screeny-10, "By Blyss Sarania and Nobbs66")
 	Put(screenx-70,6),strawberry, Alpha
 End Sub
 
-Sub loadini
-	Dim f As Integer = FreeFile
+Sub fprint(ByVal x As Integer, ByVal y As Integer, ByVal text As String, ByVal c As Integer = RGB(255,255,255)) 'print to screen with font
+	font.set_color(c)
+	font.print_text(x, y, text)
+End Sub
+
+Sub initcpu 'initialize CPU and RAM
+	For i As Integer = 0 To 65535
+		cpu.memory(i) = 0
+	Next
+	cpu.flagS = 0
+	cpu.flagZ = 0
+	cpu.flagI = 1
+	cpu.flagD = 0
+	cpu.flagC = 0
+	cpu.flagV = 0
+	cpu.flagB = 1
+	cpu.flagU = 1
+End Sub
+
+Function readmem(ByVal addr As LongInt, ByVal numbytes As UInteger = 1) As ULongInt
+Dim As UByte tempmem(0 To 7)
+For q As UByte = 0 To numbytes-1
+	tempmem(q)=cpu.memory(addr+q)
+Next
+suspicious_pointer=@tempmem(0)
+Return *suspicious_pointer
+End Function
+
+Sub writemem(ByVal addr As LongInt, ByVal value As UByte) 'write memory
+	cpu.memory(addr) = value
+End Sub
+
+Sub loadini 'load the ini. Duh.
+	Dim f As UByte = FreeFile
 	If Not FileExists(ExePath & "\strawberry.ini") Then
 		Open ExePath & "\strawberry.ini" For Output As #f
 		Print #f, 640
 		Print #f, 480
-		Print #f, 8000
+		Print #f, 10000
 		Close #f
 	EndIf
 	Open ExePath & "\strawberry.ini" For Input As #f
@@ -292,7 +270,7 @@ Sub loadROM
 	WindowTitle "Project Strawberry: " & shpname ' set window title
 	Open progname For Binary As #1
 	romsize = Lof(1)
-	ReDim As Byte rom(0 To romsize) ' make ROM be the size of the... ROM
+	ReDim As UByte rom(0 To romsize) ' make ROM be the size of the... ROM
 	For i As Integer = 0 To romsize 'Load ROM into ROM memory
 		Get #1, i+1, rom(i), 1
 	Next
@@ -342,7 +320,7 @@ Sub loadROM
 			Next
 		If header.chrSize*8*1024 = 8092 Then
 			For i as Integer = 0 To header.chrSize*8*1024
-				cpu.VRAM(i) = chrRom(i)
+'				cpu.VRAM(i) = chrRom(i)
 			Next
 		EndIf
 		EndIf
@@ -352,84 +330,32 @@ Sub loadROM
 	End if
 End Sub
 
-Sub savestate
-	Dim As Integer f = FreeFile
-	If FileExists("strawberry.state") Then Kill "strawberry.state"
-	Open "strawberry.state" For Binary As #F
-	Put #f, 1, cpu.memory()
-	Put #f, 65537, cpu.acc
-	Put #f, 65538, cpu.X
-	Put #f, 65539, cpu.Y
-	Put #f, 65540, cpu.ps
-	Put #f, 65541, cpu.FlagS
-	Put #f, 65542, cpu.FlagV
-	Put #f, 65543, cpu.FlagU
-	Put #f, 65544, cpu.FlagB
-	Put #f, 65545, cpu.FlagD
-	Put #f, 65546, cpu.FlagI
-	Put #f, 65547, cpu.FlagZ
-	Put #f, 65548, cpu.FlagC
-	Put #f, 65549, cpu.sp
-	Put #f, 65551, cpu.PC
-	Close #f
-	Print "Saved state as: "
-	Print  CurDir & "/strawberry.state"
-	Sleep 2000,1
-End Sub
-
-Sub loadstate
-	Dim As Integer f = FreeFile
-	Open "strawberry.state" For Binary As #F
-	Get #1, 1, cpu.memory()
-	Get #f, 65537, cpu.acc
-	Get #f, 65538, cpu.X
-	Get #f, 65539, cpu.Y
-	Get #f, 65540, cpu.ps
-	Get #f, 65541, cpu.FlagS
-	Get #f, 65542, cpu.FlagV
-	Get #f, 65543, cpu.FlagU
-	Get #f, 65544, cpu.FlagB
-	Get #f, 65545, cpu.FlagD
-	Get #f, 65546, cpu.FlagI
-	Get #f, 65547, cpu.FlagZ
-	Get #f, 65548, cpu.FlagC
-	Get #f, 65551, cpu.PC,2
-	Get #f, 65549, cpu.sp,2
-	Close #f
-	Print "Loaded state."
-	Sleep 1000,1
-End Sub
-
 Sub CAE
 	If strawberry Then ImageDestroy(Strawberry)
 	Close
 	End
 End Sub
 
+/'==============================================================================
+                                       End subroutines
+================================================================================'/
 ScreenRes screenx,screeny,32
 strawberry = freeimage_load_fb(CurDir & "/Res/strawberry.png", TRUE) ' load cute strawberry :)
 initcpu
 loadROM ' loadfile into ROM and cpu memory
 Cls
-
-If debug > 0 Then
-	If FileExists("log.txt") Then Kill ("log.txt") ' erase log so we can write a new one
-EndIf
-
-If emulatorMode = "6502" Then cpu.pc = &h0600 ' set program counter to program start
-
-start = Timer ' for opcode timing
-
-'main
-Do 
+If emulatorMode = "6502" Then cpu.pc = &h0600 ' set pc to program start for simple 6502 stuff
+start = Timer
+Do
+	cpu.memory(&hfe) = CInt(Rnd*255) ' random number generator for simple 6502 programs
 	'====================================REMOVE THIS======================================================
 	If totalops = 27000 Then cpu.memory(&h2002) = &h80 'Temporary tell the system that the PPU is warmed up
 	'====================================REMOVE THIS======================================================
-	 keycheck
-	'If MultiKey(SC_G) Then cpu.memory(&h4016) = 1
-	cpu.oldpc = cpu.pc ' set this for storing debug information
-	decode(cpu.memory(cpu.pc)) ' decode binary to opcode and address mode
+	keycheck
+	cpu.oldpc = cpu.pc 'this is for storing debug information
+	decode(cpu.memory(cpu.pc)) ' decode the binary located at the PC to opcode and address mode
 	cpu.pc+=1
+	totalops+=1
 	Select Case instruction
 		Case "ADC"
 			INS_ADC
@@ -544,51 +470,37 @@ Do
 		Case "TYA"
 			INS_TYA
 		Case Else
-			Beep
-			msg = "decoder broken somehow, received " & instruction
-			Cls
-			Print msg
-			Print Hex(cpu.pc)
-			Sleep 5000,1
+			print "Decoder broken somehow. It received " & instruction
+			Print "Address mode: " & amode
+			Print "Program Counter: 0x" & Hex(cpu.pc)
+			Print "Stack pointer: 0x" & cpu.sp
+			Print "-----------------" & "                         "
+			Print "|N|V|-|B|D|I|Z|C|" & "                         "
+			Print "| | | | | | | | |"& "                         "
+			Print "|" & cpu.flagS & "|" & cpu.flagV & "|" & cpu.flagU & "|" & cpu.flagB & "|" & cpu.flagD & "|" & cpu.flagI & "|" & cpu.flagZ & "|" & cpu.flagC & "|" & "                         "
+			Print "|_______________|"   & "                         "
+			Print "Trace:"
+			For i As Integer = 1 To 20
+				Print opHistory(i) & "               "
+			Next
+			Do
+			Loop While InKey$ = ""
 			sleep
 	End Select
-	totalops+=1
-	cpu.memory(&hfe) = CInt(Rnd*255) ' random number generator for simple 6502 programs
-	If cpu.flagC = 1 Then cpu.ps = BitSet(cpu.ps,0) Else cpu.ps = BitReset(cpu.ps,0)
-	If cpu.flagZ = 1 Then cpu.ps = BitSet(cpu.ps,1) Else cpu.ps = BitReset(cpu.ps,1)
-	If cpu.flagI = 1 Then cpu.ps = BitSet(cpu.ps,2) Else cpu.ps = BitReset(cpu.ps,2)
-	If cpu.flagD = 1 Then cpu.ps = BitSet(cpu.ps,3) Else cpu.ps = BitReset(cpu.ps,3)
-	If cpu.flagB = 1 Then cpu.ps = BitSet(cpu.ps,4) Else cpu.ps = BitReset(cpu.ps,4)
-	If cpu.flagU = 1 Then cpu.ps = BitSet(cpu.ps,5) Else cpu.ps = BitReset(cpu.ps,5)
-	If cpu.flagV = 1 Then cpu.ps = BitSet(cpu.ps,6) Else cpu.ps = BitReset(cpu.ps,6)
-	If cpu.flagS = 1 Then cpu.ps = BitSet(cpu.ps,7) Else cpu.ps = BitReset(cpu.ps,7)
 
-	If debug = 0 Then
-		If (monitor = 1 And CInt(totalops / (Timer-start)) > opgoal) Or (totalops = 1 And monitor = 1) Then status
-	Else
-		status
-	End If
-
-	If Timer-lastframetime > 1/30  Then
-		simplegraphics
-		lastframetime= Timer
-	End If
-   nextskip -=1
 	If debug = 1 And nextskip = 0 Then
 		nextskip = opstoskip
-		
-		
 		While Not MultiKey(SC_SPACE) And Not MultiKey(SC_ESCAPE) And Not MultiKey(SC_PAGEUP)
 			Sleep 10
 			If MultiKey(SC_BACKSPACE) Then
 				If opstoskip = 1 Then
 					opstoskip = 10
-				ElseIf opstoskip = 10 Then 
+				ElseIf opstoskip = 10 Then
 					opstoskip = 100
 				ElseIf opstoskip = 100 Then
 					opstoskip = 1000
 				ElseIf opstoskip = 1000 then
-               opstoskip = 1
+					opstoskip = 1
 				EndIf
 				nextskip = opstoskip
 				Locate 2,1: Print "Total ops: " & totalops & " | Stepping by: " & opstoskip & "                       "
@@ -597,16 +509,13 @@ Do
 		Wend
 		While MultiKey(SC_SPACE): Sleep 10: Wend
 	EndIf
-
-	'check for keys
-	'If debug > 0 And totalops > 2 Then
-   '	Open "log.txt" for Append As #22
-	'	Print #22, Hex(cpu.oldpc,4) & ": " & instruction & " " & amode & " $" & Hex(taddr,4) & " $" & Hex(*tdata,2)
-	'	Close #22
-	'EndIf
-
-
-	If CInt(totalops / (Timer-start)) > opgoal Then Sleep 200 ' try to maintain goal ops per second
+	boobs+=1
+	If boobs = 5000  Then
+		status
+		simplegraphics
+		boobs=0
+	End If
+	If (totalops / (Timer-start)) > opgoal Then Sleep 200
 Loop While Not MultiKey(SC_ESCAPE)
-Close
+Close 
 CAE
