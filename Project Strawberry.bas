@@ -41,6 +41,7 @@ Copyright 2014 Blyss Sarania
 Randomize Timer
 #Include Once "fbgfx.bi"
 Using fb
+#Include Once "crt.bi" 'c runtime
 #Include Once "file.bi" 'File functions
 #Include Once "Freeimage.bi" ' Freeimage library
 #Include Once "inc/freetofb.bi" 'Easily use Freeimage images in Freebasic
@@ -60,7 +61,7 @@ Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg,
 Dim Shared As Single start, lastframetime
 Dim Shared As Any Ptr strawberry
 Dim Shared As ULongInt Ptr suspicious_pointer
-Dim Shared As UInteger boobs
+Dim Shared As UInteger status_timer
 
 Type cpus
 	'------------------------'
@@ -153,40 +154,38 @@ nextskip = 1
 ================================================================================'/
 
 Sub status
-	Locate 1,1
-	Print "Emulator mode: " & emulatorMode
-	If emulatorMode = "NES" Then
-		Print "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024 
-	EndIf
-	Print "Total ops: " & totalops & " | Stepping by: " & opstoskip & "                     "
-	Print "Ops per second: " &  CInt(totalops / (Timer-start)) & "                         "
-	Print
-	Print "Registers:                                           "
-	Print "________________________               "
-	Print "A: " & IIf(cpu.acc < &h10,"0" & Hex(cpu.acc),Hex(cpu.acc)) & " X: " & IIf(cpu.x < &h10,"0" & Hex(cpu.x),Hex(cpu.x)) & " Y: " & IIf(cpu.y < &h10,"0" & Hex(cpu.y),Hex(cpu.y)) & "                         "
-	Print
-	Print "PC: "; cpu.PC & " ($" & Hex(cpu.pc) & ")" & "                         "
-	Print
-	Print "Stack pointer: "; cpu.sp - &hff & "($" & Hex(cpu.sp-&hff) & ")" & "                         "
-	Print
-	Print "-----------------" & "                         "
-	Print "|N|V|-|B|D|I|Z|C|" & "                         "
-	Print "| | | | | | | | |"& "                         "
-	Print "|" & cpu.flagS & "|" & cpu.flagV & "|" & cpu.flagU & "|" & cpu.flagB & "|" & cpu.flagD & "|" & cpu.flagI & "|" & cpu.flagZ & "|" & cpu.flagC & "|" & "                         "
-	Print "|_______________|"   & "                         "
-	Print
-	Print "Processor status: " & cpu.ps & " " & " (" & Hex(cpu.ps) & ")"
-	Print "Message: "; msg & "  														"
-	msg = "                                                                 "
-	Print "                                                                             "
-	Print "                                                                             "
-	Print "Trace:"
-	For i As Integer = 1 To 20
-		Print opHistory(i) & "               "
+	Dim blackout As Any Ptr
+	blackout = ImageCreate(screenx/2,screeny,RGB(0,0,0))
+	Put (1,1),blackout,pset
+	ImageDestroy(blackout)
+	font.set_size 10
+	fprint 1,15, "Emulator mode: " & emulatorMode 
+	fprint 1,25, "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
+   fprint 1,35, "Total ops: " & totalops & " | Stepping by: " & opstoskip & "                     "
+	fprint 1,45, "Ops per second: " &  CInt(totalops / (Timer-start)) & "                         "
+   fprint 1,65, "Registers:                                           "
+	fprint 1,75, "________________________               "                                        
+	fprint 1,85, "A: " & IIf(cpu.acc < &h10,"0" & Hex(cpu.acc),Hex(cpu.acc)) & " X: " & IIf(cpu.x < &h10,"0" & Hex(cpu.x),Hex(cpu.x)) & " Y: " & IIf(cpu.y < &h10,"0" & Hex(cpu.y),Hex(cpu.y)) & "                         "
+	fprint 1,95, "PC: " & cpu.PC & " ($" & Hex(cpu.pc) & ")" & "                         "
+   fprint 1,105, "Stack pointer: " & cpu.sp - &hff & "($" & Hex(cpu.sp-&hff) & ")" & "                         "
+	Line(1,115)-(120,143),RGB(255,255,255),b
+	fprint 3,125, "N   V   -   B   D   I   Z   C"
+	Line (1,130)-(120,130),RGB(255,255,255)
+	fprint 3,140, cpu.flagS & "   " & cpu.flagV & "   " & cpu.flagU & "   " & cpu.flagB & "   " & cpu.flagD & "   " & cpu.flagI & "   " & cpu.flagZ & "   " & cpu.flagC
+	For z As UByte = 0 To 6
+	Line (12+(z*15),115)-(12+(z*15),143),RGB(255,255,255)
 	Next
-	fprint(2, screeny-60, "Project Strawberry",RGB(255,0,0))
-	fprint(2, screeny-35, "Version 0.40 alpha ")
-	fprint(2, screeny-10, "By Blyss Sarania and Nobbs66")
+	fPrint 1,165, "Processor status: " & cpu.ps & " " & " (" & Hex(cpu.ps) & ")"
+	fPrint 1,175, "Message: " & msg
+	msg = "                                                                 "
+	fPrint 1,185, "Trace:"
+	For i As Integer = 1 To 20
+		fprint 1, 195+(i*10), opHistory(i) & "               "
+	Next
+	font.set_size 18
+	fprint(2, screeny-55, "Project Strawberry",RGB(255,0,0))
+	fprint(2, screeny-40, "Version 0.40 alpha ")
+	fprint(2, screeny-25, "By Blyss Sarania and Nobbs66")
 	Put(screenx-70,6),strawberry, Alpha
 End Sub
 
@@ -279,6 +278,7 @@ Sub loadROM
 	'read header
 	open progname for binary as #1
 	get #1, 1, header.signature()
+	If Chr(header.signature(0)) <> "N" And Chr(header.signature(1)) <> "E" And Chr(header.signature(2)) <> "S" Then GoTo skipread
 	Get #1, 5, header.prgSize
 	Get #1, 6, header.chrSize
 	Get #1, 7, header.Flags6
@@ -287,7 +287,7 @@ Sub loadROM
 	Get #1, 10, header.Flags9
 	Get #1, 11, header.flags10
 	Get #1, 12, header.zeros()
-	
+   skipread:
 	If Chr(header.signature(0)) = "N" And Chr(header.signature(1)) = "E" And Chr(header.signature(2)) = "S" Then
 		ReDim As Byte PrgROM(header.prgSize*16*1024)
 		ReDim As Byte chrROM(header.chrSize*8*1024)
@@ -509,11 +509,11 @@ Do
 		Wend
 		While MultiKey(SC_SPACE): Sleep 10: Wend
 	EndIf
-	boobs+=1
-	If boobs = 5000  Then
+	status_timer+=1
+	If status_timer = 5000  Then
 		status
 		simplegraphics
-		boobs=0
+		status_timer=0
 	End If
 	If (totalops / (Timer-start)) > opgoal Then Sleep 200
 Loop While Not MultiKey(SC_ESCAPE)
