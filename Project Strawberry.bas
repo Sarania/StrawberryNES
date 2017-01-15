@@ -63,6 +63,7 @@ Dim Shared As Any Ptr strawberry
 Dim Shared As ULongInt Ptr suspicious_pointer
 Dim Shared As UInteger status_timer
 
+
 Type cpus
 	'------------------------'
 	'   6502 Registers/MEM   '
@@ -289,9 +290,9 @@ Sub loadROM
 	Get #1, 12, header.zeros()
    skipread:
 	If Chr(header.signature(0)) = "N" And Chr(header.signature(1)) = "E" And Chr(header.signature(2)) = "S" Then
-		ReDim As Byte PrgROM(header.prgSize*16*1024)
-		ReDim As Byte chrROM(header.chrSize*8*1024)
-		ReDim As Byte prgRAM(header.prgRAMSize*8*1024)
+		ReDim As UByte PrgROM(header.prgSize*16*1024)
+		ReDim As UByte chrROM(header.chrSize*8*1024)
+		ReDim As UByte prgRAM(header.prgRAMSize*8*1024)
 		Get #1, 17, prgROM()
 		Get #1, 17 + header.prgSize, chrROM()
 		emulatorMode = "NES"
@@ -311,15 +312,15 @@ Sub loadROM
 			cae
 		EndIf
 		Cls
-		For i As Integer = 0 To header.prgSize*16*1024
+		For i As Integer = 0 To (header.prgSize*16*1024)-1
 			cpu.memory(&h8000+i) = prgRom(i)
 		Next
 		If header.prgSize*16*1024 = 16384 Then
-			For i As Integer = 0 To header.prgSize*16*1024
+			For i As Integer = 0 To (header.prgSize*16*1024)-1
 				cpu.memory(&hc000+i) = prgRom(i)
 			Next
 		If header.chrSize*8*1024 = 8092 Then
-			For i as Integer = 0 To header.chrSize*8*1024
+			For i as Integer = 0 To (header.chrSize*8*1024)-1
 '				cpu.VRAM(i) = chrRom(i)
 			Next
 		EndIf
