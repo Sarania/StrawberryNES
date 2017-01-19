@@ -60,7 +60,6 @@ Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, scr
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
 Dim Shared As Single start, lastframetime
 Dim Shared As Any Ptr strawberry
-Dim Shared As ULongInt Ptr suspicious_pointer
 Dim Shared As UInteger status_timer
 
 
@@ -210,6 +209,7 @@ Sub initcpu 'initialize CPU and RAM
 End Sub
 
 Function readmem(ByVal addr As LongInt, ByVal numbytes As UInteger = 1) As ULongInt
+Dim As ULongInt Ptr suspicious_pointer
 Dim As UByte tempmem(0 To 7)
 For q As UByte = 0 To numbytes-1
 	tempmem(q)=cpu.memory(addr+q)
