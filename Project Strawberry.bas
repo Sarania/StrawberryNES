@@ -58,9 +58,10 @@ Declare Sub loadini 'Load the ini file
 Dim Shared As UByte debug
 Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
-Dim Shared As Single start, lastframetime
+Dim Shared As Single start, lastframetime,opsPerSecond
 Dim Shared As Any Ptr strawberry
 Dim Shared As UInteger status_timer
+
 
 
 Type cpus
@@ -162,7 +163,7 @@ Sub status
 	fprint 1,15, "Emulator mode: " & emulatorMode 
 	fprint 1,25, "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
    fprint 1,35, "Total ops: " & totalops & " | Stepping by: " & opstoskip & "                     "
-	fprint 1,45, "Ops per second: " &  CInt(totalops / (Timer-start)) & "                         "
+	fprint 1,45, "Ops per second: " &  opsPerSecond & "                         "
    fprint 1,65, "Registers:                                           "
 	fprint 1,75, "________________________               "                                        
 	fprint 1,85, "A: " & IIf(cpu.acc < &h10,"0" & Hex(cpu.acc),Hex(cpu.acc)) & " X: " & IIf(cpu.x < &h10,"0" & Hex(cpu.x),Hex(cpu.x)) & " Y: " & IIf(cpu.y < &h10,"0" & Hex(cpu.y),Hex(cpu.y)) & "                         "
@@ -348,7 +349,8 @@ Cls
 If emulatorMode = "6502" Then cpu.pc = &h0600 ' set pc to program start for simple 6502 stuff
 start = Timer
 Do
-	cpu.memory(&hfe) = CInt(Rnd*255) ' random number generator for simple 6502 programs
+	opsPerSecond = totalops / (Timer-start)
+	cpu.memory(&hfe) = Rnd*255 ' random number generator for simple 6502 programs
 	'====================================REMOVE THIS======================================================
 	If totalops = 27000 Then cpu.memory(&h2002) = &h80 'Temporary tell the system that the PPU is warmed up
 	'====================================REMOVE THIS======================================================
@@ -511,12 +513,12 @@ Do
 		While MultiKey(SC_SPACE): Sleep 10: Wend
 	EndIf
 	status_timer+=1
-	If status_timer = 5000  Then
+	If status_timer >= OpsPerSecond/20  Then
 		status
 		simplegraphics
 		status_timer=0
 	End If
-	If (totalops / (Timer-start)) > opgoal Then Sleep 200
+	If opsPerSecond > opgoal Then Sleep 10
 Loop While Not MultiKey(SC_ESCAPE)
 Close 
 CAE

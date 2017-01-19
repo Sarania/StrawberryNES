@@ -491,8 +491,8 @@ Sub INS_RTI
 End Sub
 
 Sub INS_RTS
-	Dim hbyte As Byte
-	Dim lbyte As Byte
+	Dim hbyte As UByte
+	Dim lbyte As UByte
 	'return from subroutine
 	cpu.sp+=1
 	LByte = readmem(cpu.sp)
