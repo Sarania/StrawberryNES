@@ -1,16 +1,17 @@
 Type ppus
 	VRAM(0 To &h1000) As UByte 'Video RAM
 	SPR(0 To &H100) As UByte '256 Byte Sprite Attribute RAM
+	xScroll As UByte
+	yScroll As UByte
+	baseTile As UShort
+	baseNameTable As UShort 
+	scanline As UShort
+	lines As UByte
 End Type
-Dim As UShort scanline
 Dim As UShort lines = 240 
-Dim As UShort baseNameTable
-Dim As UShort baseTile
-dim as ubyte  xScroll
-dim as ubyte  yScroll
 Dim Shared ppu As ppus
 Declare Sub writePPUReg(ByVal value As UByte, ByVal addr As UShort)
-Declare Sub readPPUReg(ByVal value As UByte)
+Declare function readPPUReg(ByVal value As UByte) As UShort
 Declare Sub vblank
 Declare Sub updateDrawCrap
 Declare Sub drawPix
@@ -18,13 +19,13 @@ Declare Sub ppuLoop
 
 Sub vblank
 	cpu.memory(&h2002) Or= &h80 'Set Vbl Flag in PPU STATUS
-	 Then If Bit(cpu.memory(&h2000),7) = 1 Then cpu.pc = (cpu.memory(&hFFFB) Shl 8) Or cpu.memory(&hFFFA) 'Are NMIs Enabled? VECTOR!
+	If Bit(cpu.memory(&h2000),7) = 1 Then cpu.pc = (cpu.memory(&hFFFB) Shl 8) Or cpu.memory(&hFFFA) 'Are NMIs Enabled? VECTOR!
 End Sub
 Sub writePPUReg(ByVal value As UByte, ByVal addr As UShort)
 Dim As UByte scrollFlop 'Flip Flop for SCROLL
 Dim As UByte addrFlop 	'Flip Flop for PPUADDR
 Dim As UShort ppuAddr	'PPU Address
-	Select Case(addr & &h7)
+	Select Case(addr and &h2007)
 	Case &h2000 'PPUCTRL
 	cpu.memory(&h2000) = value
 	Case &h2001 'PPUMASK
@@ -36,8 +37,8 @@ Dim As UShort ppuAddr	'PPU Address
 	Case &h2005 'PPUSCROLL
 	'2X
 	If scrollFlop > 1 Then scrollFlop = 0 'Catch the correct write
-	If scrollFlop = 0 Then xScroll = value Else yScroll = value
-	flipFlop +=1
+	If scrollFlop = 0 Then ppu.xScroll = value Else ppu.yScroll = value
+	scrollFlop +=1
 	cpu.memory(&h2005) = value
 	Case &h2006 'PPUADDR
 	'2X
@@ -47,33 +48,35 @@ Dim As UShort ppuAddr	'PPU Address
 	cpu.memory(&h2006) = value
 	Case &h2007 'PPUDATA
 	cpu.memory(&h2007) = value
-	Case &h4014
+	End select
 End Sub
 
-Sub readPPUReg(ByVal value As UByte)
-	Select Case 
+Function readPPUReg(ByVal addr As UByte)As ushort
+	Dim As UByte value 
+	Select Case (addr And &h2007)
 		'Only a few registers can be read
 		Case 2
 		value = cpu.memory(&h2002) 
-		BitReset(cpu.memory(&h2002),7) 'Clear VBL Flag on Read
+		cpu.memory(&h2002) = BitReset(cpu.memory(&h2002),7) 'Clear VBL Flag on Read
 		
 		Case 4
-			
+		'Need to work on this. Too lazy now. 
 		Case 7 
 			
 		
 	End Select
 	Return value
-End Sub
+End Function
 Sub updateDrawCrap
 	'0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00 
-	baseNameTable = (cpu.memory(&h2000)And 1)*&h400
+	ppu.baseNameTable = (cpu.memory(&h2000)And 1)*&h400
 	'0 = $0000; 1 = $1000;
-	baseTile = ((cpu.memory(&h2000)Shr 1)And 1)*&h1000
+	ppu.baseTile = ((cpu.memory(&h2000)Shr 1)And 1)*&h1000
 End Sub
 Sub drawPix
 	
+	
 End Sub
 Sub ppuLoop
-	If scanline = lines Then vblank
+	If ppu.scanline = ppu.lines Then vblank
 End Sub

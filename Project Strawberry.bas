@@ -141,6 +141,7 @@ font.set_back_color(RGB(0,0,0))
                                      End font stuff
 ================================================================================'/
 #Include Once "inc/misc.bi" 'misc stuff
+#Include Once "inc/ppu.bi" 'PPU
 #Include Once "inc/6502_instruction_set.bi" ' contains the instruction set
 #Include Once "inc/decoder.bi" ' decodes hex opcodes to asm
 emulatorMode = "6502"
@@ -220,7 +221,8 @@ Return *suspicious_pointer
 End Function
 
 Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write memory
-	cpu.memory(addr) = value
+	If addr < &h2000 Then cpu.memory(addr And &h7ff) = value 'Write to physical RAM
+	If addr > &h2000 Then writePPUReg(value, addr)
 End Sub
 
 Sub loadini 'load the ini. Duh.
@@ -434,7 +436,7 @@ Do
 
 	If cpu.sp > 511 Or cpu.sp < 256 Then
 		Cls
-		Print "Stack pointer out of bounds!
+		Print "Stack pointer out of bounds!"
 		Sleep
 		CAE
 	EndIf
