@@ -88,6 +88,7 @@ Sub loadROM
 		EndIf
 		cpu.flagI = 1
 		cpu.pc = (cpu.memory(&hFFFD) Shl 8) Or cpu.memory(&hFFFC)
-
+	
+	
 	End if
 End Sub

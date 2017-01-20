@@ -222,7 +222,7 @@ Sub INS_BRK
 	'cae
 	
  	
-	ticks+=7
+
 End Sub
 
 Sub INS_BVC
@@ -241,28 +241,28 @@ Sub INS_CLC
 	'checked
 	'clear carry flag
 	cpu.flagC = 0
-	ticks+=2
+
 End Sub
 
 Sub INS_CLD
 	'clear dedimal flag
 	'checked
 	cpu.FlagD = 0
-	ticks+=2
+
 End Sub
 
 Sub INS_CLI
 	'clear interrupt flag
 	'checked
 	cpu.flagI = 0
-	ticks+=2
+
 End Sub
 
 Sub INS_CLV
 	'clear overflow flag
 	'checked
 	cpu.flagV = 0
-	ticks+=2
+
 End Sub
 
 Sub INS_CMP
@@ -309,7 +309,7 @@ Sub INS_DEX
 	cpu.X -=1
 	If cpu.x = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
 	If Bit(cpu.x,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	ticks+=2
+	
 End Sub
 
 Sub INS_DEY
@@ -317,7 +317,7 @@ Sub INS_DEY
 	cpu.Y -=1
 	If cpu.y = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
 	If Bit(cpu.y,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	ticks+=2
+
 End Sub
 
 Sub INS_EOR
@@ -341,7 +341,7 @@ Sub INS_INX
 	cpu.x+=1
 	If cpu.x = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
 	If Bit(cpu.x,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	ticks+=2
+
 End Sub
 
 Sub INS_INY
@@ -349,7 +349,7 @@ Sub INS_INY
 	cpu.y+=1
 	If cpu.y = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
 	If Bit(cpu.y,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	ticks+=2
+	
 End Sub
 
 Sub INS_JMP
@@ -361,8 +361,8 @@ End Sub
 Sub INS_JSR
 	'jump subroutine
 	get_data
-	writemem(cpu.sp,LoByte(cpu.pc))
-	writemem(cpu.sp-1,HiByte(cpu.pc))
+	writemem(&h100+cpu.sp,LoByte(cpu.pc))
+	writemem(&h100+cpu.sp-1,HiByte(cpu.pc))
 	cpu.sp-=2
 	cpu.pc = taddr
 End Sub
@@ -406,7 +406,7 @@ End Sub
 Sub INS_NOP
 	'checked
 	'no operation
-	ticks+=2
+	
 End Sub
 
 Sub INS_ORA
@@ -420,9 +420,9 @@ End Sub
 
 Sub INS_PHA
 	'push accumulator to stack
-	writemem(cpu.sp,cpu.acc)
+	writemem(&h100+cpu.sp,cpu.acc)
 	cpu.sp-=1
-	ticks+=3
+
 End Sub
 
 Sub INS_PHP
@@ -435,24 +435,24 @@ Sub INS_PHP
 	If cpu.flagU = 1 Then cpu.ps = BitSet(cpu.ps,5) Else cpu.ps = BitReset(cpu.ps,5)
 	If cpu.flagV = 1 Then cpu.ps = BitSet(cpu.ps,6) Else cpu.ps = BitReset(cpu.ps,6)
 	If cpu.flagS = 1 Then cpu.ps = BitSet(cpu.ps,7) Else cpu.ps = BitReset(cpu.ps,7)
-	writemem(cpu.sp,cpu.ps)
+	writemem(&h100+cpu.sp,cpu.ps)
 	cpu.sp-=1
-	ticks+=3
+	
 End Sub
 
 Sub INS_PLA
 	'pull from stack to accumulator
 	cpu.sp+=1
-	cpu.acc = readmem(cpu.sp)
+	cpu.acc = readmem(&h100+cpu.sp)
 	If cpu.acc = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
 	If Bit(cpu.acc,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	ticks+=4
+	
 End Sub
 
 Sub INS_PLP
 	'pull processor status from stack
 	cpu.sp+=1
-	cpu.ps = readmem(cpu.sp)
+	cpu.ps = readmem(&h100+cpu.sp)
 	If Bit(cpu.ps,0) Then cpu.flagC = 1 Else cpu.flagC = 0
 	If Bit(cpu.ps,1) Then cpu.flagZ = 1 Else cpu.flagZ = 0
 	If Bit(cpu.ps,2) Then cpu.flagI = 1 Else cpu.flagI = 0
@@ -461,7 +461,7 @@ Sub INS_PLP
 	If Bit(cpu.ps,5) Then cpu.flagU = 1 Else cpu.flagU = 0
 	If Bit(cpu.ps,6) Then cpu.flagV = 1 Else cpu.flagV = 0
 	If Bit(cpu.ps,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	ticks+=4
+
 End Sub
 
 Sub INS_ROL
@@ -493,10 +493,10 @@ End Sub
 Sub INS_RTI
 	'return from interrupt
 	cpu.sp+=1
-	cpu.ps = readmem(cpu.sp)
+	cpu.ps = readmem(&h100+cpu.sp)
 	cpu.sp+=1
-	cpu.pc = readmem(cpu.sp)
-	ticks+=6
+	cpu.pc = readmem(&h100+cpu.sp)
+
 End Sub
 
 Sub INS_RTS
@@ -504,11 +504,11 @@ Sub INS_RTS
 	Dim lbyte As UByte
 	'return from subroutine
 	cpu.sp+=1
-	LByte = readmem(cpu.sp)
+	LByte = readmem(&h100+cpu.sp)
 	cpu.sp+=1
-	hbyte = readmem(cpu.sp)
+	hbyte = readmem(&h100+cpu.sp)
 	cpu.pc = ValInt("&h" & Hex(lbyte,2) & Hex(hbyte,2))
-	ticks+=6
+
 End Sub
 
 Sub INS_SBC
@@ -528,21 +528,21 @@ Sub INS_SEC
 	'checked
 	'Set carry flag
 	cpu.flagC = 1
-	ticks+=2
+	
 End Sub
 
 Sub INS_SED
 	'checked
 	'Set decimal flag
 	cpu.flagD = 1
-	ticks+=2
+	
 End Sub
 
 Sub INS_SEI
 	'checked
 	'set interrupt flag
 	cpu.flagI = 1
-	ticks+=2
+	
 End Sub
 
 Sub INS_STA
@@ -571,7 +571,7 @@ Sub INS_TAX
 	cpu.x = cpu.acc
 	If cpu.x = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
 	If Bit(cpu.x,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	ticks+=2
+	
 End Sub
 
 Sub INS_TAY
@@ -579,7 +579,7 @@ Sub INS_TAY
 	cpu.y = cpu.acc
 	If cpu.y = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
 	If Bit(cpu.y,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	ticks+=2
+	
 End Sub
 
 Sub INS_TSX
@@ -594,7 +594,7 @@ Sub INS_TXA
 	cpu.acc = cpu.x
 	If cpu.acc = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
 	If Bit(cpu.acc,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	ticks+=2
+	
 End Sub
 
 Sub INS_TXS
@@ -607,5 +607,5 @@ Sub INS_TYA
 	cpu.acc = cpu.y
 	If cpu.acc = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
 	If Bit(cpu.acc,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	ticks+=2
+	
 End Sub
