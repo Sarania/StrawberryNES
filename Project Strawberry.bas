@@ -47,8 +47,8 @@ Using fb
 #Include Once "inc/freetofb.bi" 'Easily use Freeimage images in Freebasic
 #Include Once "zlib.bi"
 #Include Once "Inc/freetypeclass.bi" 'fontz
-Declare Function readmem(ByVal addr As LongInt, ByVal numbytes As UInteger = 1) As ULongInt ' for reading memory
-Declare Sub writemem(ByVal addr As LongInt, byval value As UByte) 'write a value to NES memory
+Declare Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As ULongInt ' for reading memory
+Declare Sub writemem(ByVal addr As ULongInt, byval value As UByte) 'write a value to NES memory
 Declare Sub fprint(ByVal x As Integer, ByVal y As Integer, ByVal text As String, ByVal c As Integer = RGB(255,255,255))'Print to the screen with a font
 Declare Sub status 'print various status stuff to the screen
 Declare Sub initcpu 'initialize the 6502
@@ -56,7 +56,7 @@ Declare Sub loadROM 'load a ROM in to memory
 Declare Sub CAE 'Cleanup and exit
 Declare Sub loadini 'Load the ini file
 Dim Shared As UByte debug
-Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops
+Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=1
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
 Dim Shared As Single start, lastframetime,opsPerSecond
 Dim Shared As Any Ptr strawberry
@@ -208,7 +208,7 @@ Sub initcpu 'initialize CPU and RAM
 	cpu.flagU = 1
 End Sub
 
-Function readmem(ByVal addr As LongInt, ByVal numbytes As UInteger = 1) As ULongInt
+Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As ULongInt
 Dim As ULongInt Ptr suspicious_pointer
 Dim As UByte tempmem(0 To 7)
 For q As UByte = 0 To numbytes-1
@@ -218,7 +218,7 @@ suspicious_pointer=@tempmem(0)
 Return *suspicious_pointer
 End Function
 
-Sub writemem(ByVal addr As LongInt, ByVal value As UByte) 'write memory
+Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write memory
 	cpu.memory(addr) = value
 End Sub
 
@@ -347,6 +347,7 @@ loadROM ' loadfile into ROM and cpu memory
 Cls
 If emulatorMode = "6502" Then cpu.pc = &h0600 ' set pc to program start for simple 6502 stuff
 start = Timer
+If logops = 1 Then Open "log.txt" For Output As #99
 Do
 	opsPerSecond = totalops / (Timer-start)
 	cpu.memory(&hfe) = Rnd*255 ' random number generator for simple 6502 programs
@@ -518,6 +519,13 @@ Do
 		status_timer=0
 	End If
 	If opsPerSecond > opgoal Then Sleep 10
+	If cpu.sp > 511 Or cpu.sp < 256 Then
+		Cls
+		Print "Stack pointer out of bounds!
+		Sleep
+		CAE
+	EndIf
+	If logops = 1 Then Print #99, ophistory(0)
 Loop While Not MultiKey(SC_ESCAPE)
 Close 
 CAE

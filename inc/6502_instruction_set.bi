@@ -57,10 +57,10 @@ Declare Sub INS_TYA
 Declare Sub get_data
 
 Dim Shared As UShort taddr 'address with either data to be operated on, or the address to use itself
-Dim Shared As Byte Ptr tdata ' points at data to be operated on unless I fucked up the pointers again
+Dim Shared As byte Ptr tdata ' points at data to be operated on unless I fucked up the pointers again
 
 Sub get_data
-	Dim As Short indaddr
+	Dim As UShort indaddr
 	'this function will return the proper data to the opcodes depending on the addressing mode. Hopefully!
 	Select Case amode
 		Case "ACC" 'Accumulator
