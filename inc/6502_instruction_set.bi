@@ -199,6 +199,15 @@ Sub INS_BPL
 End Sub
 
 Sub INS_BRK
+	If emulatorMode = "6502" Then
+		simplegraphics
+		status
+		font.set_size 10
+		fprint (screenx/2) - 100, screeny/2, "Program issued break command! Halting.", RGB(0,0,255)
+		font.set_size 18
+		Sleep
+		cae
+	EndIf
 	'Break
 	cpu.ps = BitSet(cpu.ps,4)
 	
@@ -206,7 +215,7 @@ Sub INS_BRK
 	'Print instruction
 	'Print amode
 	'Print Hex(cpu.pc)
-	cpu.pc = (cpu.memory(&hFFFF) Shl 8)Or cpu.memory(&hFFFE)
+	'cpu.pc = (cpu.memory(&hFFFF) Shl 8)Or cpu.memory(&hFFFE)
 	'Sleep 1000,1
 	'Sleep
 	'Sleep

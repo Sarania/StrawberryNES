@@ -114,10 +114,6 @@ ReDim Shared As UByte prgRAM(0 To 1)
 Dim Shared cpu as cpus '6502 CPU
 Dim Shared header As headers
 
-#Include Once "inc/misc.bi" 'misc stuff
-#Include Once "inc/6502_instruction_set.bi" ' contains the instruction set
-#Include Once "inc/decoder.bi" ' decodes hex opcodes to asm
-
 loadini ' need to load it here because of font stuff
 ChDir ExePath
 ChDir("..")
@@ -143,6 +139,9 @@ font.set_back_color(RGB(0,0,0))
 /'==============================================================================
                                      End font stuff
 ================================================================================'/
+#Include Once "inc/misc.bi" 'misc stuff
+#Include Once "inc/6502_instruction_set.bi" ' contains the instruction set
+#Include Once "inc/decoder.bi" ' decodes hex opcodes to asm
 emulatorMode = "6502"
 lastframetime = timer
 version = "0.40 alpha"
@@ -271,14 +270,14 @@ Sub loadROM
 	WindowTitle "Project Strawberry: " & shpname ' set window title
 	Open progname For Binary As #1
 	romsize = Lof(1)
-	ReDim As UByte rom(0 To romsize) ' make ROM be the size of the... ROM
-	For i As Integer = 0 To romsize 'Load ROM into ROM memory
+	ReDim As UByte rom(romsize) ' make ROM be the size of the... ROM
+	For i As Integer = 0 To romsize-1 'Load ROM into ROM memory
 		Get #1, i+1, rom(i), 1
 	Next
 	Close #1
 
 	'read header
-	open progname for binary as #1
+	Open progname for binary as #1
 	get #1, 1, header.signature()
 	If Chr(header.signature(0)) <> "N" And Chr(header.signature(1)) <> "E" And Chr(header.signature(2)) <> "S" Then GoTo skipread
 	Get #1, 5, header.prgSize
