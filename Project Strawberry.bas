@@ -222,8 +222,12 @@ Return *suspicious_pointer
 End Function
 
 Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write memory
+	If emulatorMode = "6502" Then
+		cpu.memory(addr) = value
+	Else
 	If addr < &h2000 Then cpu.memory(addr And &h7ff) = value 'Write to physical RAM
 	If addr > &h2000 Then writePPUReg(value, addr)
+	End if
 End Sub
 
 Sub loadini 'load the ini. Duh.

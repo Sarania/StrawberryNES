@@ -122,8 +122,7 @@ Sub INS_ADC
 	'add with carry
 	Dim As Integer adctmp
 	get_data
-	adctmp = cpu.acc + *tdata + cpu.flagC
-	adctmp = adctmp And &hFF
+	adctmp = (cpu.acc + *tdata + cpu.flagC) And &hFF
 	If Bit(cpu.acc,7) <> Bit(adctmp,7) Then cpu.flagV = 1 Else cpu.flagV = 0
 	If Bit(cpu.acc,7) Then cpu.FlagS = 1 Else cpu.FlagS = 0
 	If adctmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
@@ -438,7 +437,6 @@ Sub INS_PHP
 	If cpu.flagS = 1 Then cpu.ps = BitSet(cpu.ps,7) Else cpu.ps = BitReset(cpu.ps,7)
 	writemem(&h100+cpu.sp,cpu.ps)
 	cpu.sp-=1
-	
 End Sub
 
 Sub INS_PLA
@@ -447,7 +445,6 @@ Sub INS_PLA
 	cpu.acc = readmem(&h100+cpu.sp)
 	If cpu.acc = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
 	If Bit(cpu.acc,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	
 End Sub
 
 Sub INS_PLP
@@ -462,7 +459,6 @@ Sub INS_PLP
 	If Bit(cpu.ps,5) Then cpu.flagU = 1 Else cpu.flagU = 0
 	If Bit(cpu.ps,6) Then cpu.flagV = 1 Else cpu.flagV = 0
 	If Bit(cpu.ps,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-
 End Sub
 
 Sub INS_ROL
@@ -501,15 +497,22 @@ Sub INS_RTI
 End Sub
 
 Sub INS_RTS
-	Dim hbyte As UByte
-	Dim lbyte As UByte
+	Dim suspicious_pointer As UShort Ptr
+	Dim suspicious_array(0 To 1) As UByte
+	cpu.sp+=1
+	suspicious_array(1) = readmem(&h100+cpu.sp)
+	cpu.sp+=1
+	suspicious_array(0) = readmem(&h100+cpu.sp)
+	suspicious_pointer = @suspicious_array(0)
+	cpu.pc = *suspicious_pointer
+	'Dim hbyte As UByte
+	'Dim lbyte As UByte
 	'return from subroutine
-	cpu.sp+=1
-	LByte = readmem(&h100+cpu.sp)
-	cpu.sp+=1
-	hbyte = readmem(&h100+cpu.sp)
-	cpu.pc = ValInt("&h" & Hex(lbyte,2) & Hex(hbyte,2))
-
+	'cpu.sp+=1
+	'LByte = readmem(&h100+cpu.sp)
+	'cpu.sp+=1
+	'hbyte = readmem(&h100+cpu.sp)
+	'cpu.pc = ValInt("&h" & Hex(lbyte,2) & Hex(hbyte,2))
 End Sub
 
 Sub INS_SBC
