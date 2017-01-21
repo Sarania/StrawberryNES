@@ -82,14 +82,31 @@ Type cpus
 	'bit 2 I Interrupt
 	'bit 1 Z Zero
 	'bit 0 C Carry
-	FlagS As UByte ' Sign flag
-	FlagV As UByte ' Overflow flag
-	flagU As UByte ' Unusued flag
-	flagB As UByte ' Break flag
-	flagD As UByte ' Decimal Flag
-	flagI As UByte ' Interrupt Flag
-	flagZ As UByte ' Zero flag
-	flagC As UByte ' Carry flag
+	#define  Flag_S         ( cpu.ps And 128 ) / 128 'Sign flag
+	#define  Flag_V         ( cpu.ps And 64 ) / 64 'Overflow flag
+	#define  Flag_U         ( cpu.ps And 32 ) / 32 'Useless flag
+	#define  Flag_B         ( cpu.ps And 16 ) / 16 'Break flag
+	#define  Flag_D         ( cpu.ps And 8 ) / 8 'Decimal flag
+	#define  Flag_I         ( cpu.ps And 4 ) / 4 'Interrupt flag
+	#define  Flag_Z         ( cpu.ps And 2 ) / 2 'Zero flag
+	#define  Flag_C         ( cpu.ps And 1 ) 'Carry flag
+	#Define set_S cpu.ps = cpu.ps Or 128 'set sign flag
+	#Define set_V cpu.ps = cpu.ps Or 64  'set overflow flag
+	#Define set_U cpu.ps = cpu.ps Or 32  'set useless flag
+	#Define set_B cpu.ps = cpu.ps Or 16  'set break flag
+	#Define set_D cpu.ps = cpu.ps Or 8   'set decimal flag
+	#Define set_I cpu.ps = cpu.ps Or 4   'set interrupt flag
+	#Define set_Z cpu.ps = cpu.ps Or 2   'set zero flag
+	#Define set_C cpu.ps = cpu.ps Or 1   'set carry flag
+	#Define clear_S cpu.ps = cpu.ps And 127 'clear sign flag
+	#Define clear_V cpu.ps = cpu.ps And 191 'clear overflow flag
+	#Define clear_U cpu.ps = cpu.ps And 223 'clear useless flag
+	#Define clear_B cpu.ps = cpu.ps And 239 'clear break flag
+	#Define clear_D cpu.ps = cpu.ps And 247 'clear decimal flag 
+	#Define clear_I cpu.ps = cpu.ps And 251 'clear interrupt flag
+	#Define clear_Z cpu.ps = cpu.ps And 253 'clear zero flag
+	#Define clear_C cpu.ps = cpu.ps and 254 'clear carry flag
+	
 	PC As UShort 'program counter
 	sp As ubyte = &hFF 'stack pointer
 	memory(0 To 65535) As UByte 'RAM
@@ -174,7 +191,8 @@ Sub status
 	Line(1,115)-(120,143),RGB(255,255,255),b
 	fprint 3,125, "N   V   -   B   D   I   Z   C"
 	Line (1,130)-(120,130),RGB(255,255,255)
-	fprint 3,140, cpu.flagS & "   " & cpu.flagV & "   " & cpu.flagU & "   " & cpu.flagB & "   " & cpu.flagD & "   " & cpu.flagI & "   " & cpu.flagZ & "   " & cpu.flagC
+	'fprint 3,140, cpu.flagS & "   " & cpu.flagV & "   " & cpu.flagU & "   " & cpu.flagB & "   " & cpu.flagD & "   " & cpu.flagI & "   " & cpu.flagZ & "   " & cpu.flagC
+	fprint 3,140, Flag_S & "   " & Flag_V & "   " & flag_U & "   " & flag_B & "   " & flag_D & "   " & flag_I & "   " & flag_Z & "   " & flag_C
 	For z As UByte = 0 To 6
 	Line (12+(z*15),115)-(12+(z*15),143),RGB(255,255,255)
 	Next
@@ -201,14 +219,14 @@ Sub initcpu 'initialize CPU and RAM
 	For i As Integer = 0 To 65535
 		cpu.memory(i) = 0
 	Next
-	cpu.flagS = 0
-	cpu.flagZ = 0
-	cpu.flagI = 1
-	cpu.flagD = 0
-	cpu.flagC = 0
-	cpu.flagV = 0
-	cpu.flagB = 1
-	cpu.flagU = 1
+	clear_s
+	clear_z
+	set_i
+	Clear_d
+	clear_c
+	clear_v
+	set_b
+	set_u
 End Sub
 
 Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As ULongInt
@@ -389,20 +407,10 @@ Do
 		Case "TYA"
 			INS_TYA
 		Case Else
+			status
 			print "Decoder broken somehow. It received " & instruction
-			Print "Address mode: " & amode
-			Print "Program Counter: 0x" & Hex(cpu.pc)
-			Print "Stack pointer: 0x" & cpu.sp
-			Print "-----------------" & "                         "
-			Print "|N|V|-|B|D|I|Z|C|" & "                         "
-			Print "| | | | | | | | |"& "                         "
-			Print "|" & cpu.flagS & "|" & cpu.flagV & "|" & cpu.flagU & "|" & cpu.flagB & "|" & cpu.flagD & "|" & cpu.flagI & "|" & cpu.flagZ & "|" & cpu.flagC & "|" & "                         "
-			Print "|_______________|"   & "                         "
-			Print "Trace:"
-			For i As Integer = 1 To 20
-				Print opHistory(i) & "               "
-			Next
 			Do
+			Sleep 10
 			Loop While InKey$ = ""
 			sleep
 	End Select
@@ -460,7 +468,7 @@ Do
 /'==============================================================================
                                        End sanity checks
 ================================================================================'/
-	If logops = 1 Then Print #99, ophistory(0)
+If logops = 1 Then Print #99, ophistory(0)
 Loop While Not MultiKey(SC_ESCAPE)
 Close 
 CAE

@@ -122,79 +122,70 @@ Sub INS_ADC
 	'add with carry
 	Dim As Integer adctmp
 	get_data
-	adctmp = (cpu.acc + *tdata + cpu.flagC) And &hFF
-	If Bit(cpu.acc,7) <> Bit(adctmp,7) Then cpu.flagV = 1 Else cpu.flagV = 0
-	If Bit(cpu.acc,7) Then cpu.FlagS = 1 Else cpu.FlagS = 0
-	If adctmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If adctmp < cpu.acc Then cpu.flagC = 1 Else cpu.flagC = 0
+	adctmp = (cpu.acc + *tdata + flag_c) And &hFF
+	If Bit(cpu.acc,7) <> Bit(adctmp,7) Then set_v Else clear_v
+	If Bit(cpu.acc,7) Then set_s Else clear_s
+	If adctmp = 0 Then set_z Else clear_z
+	If adctmp < cpu.acc Then set_c Else clear_c
 	cpu.acc = adctmp And &hFF
 End Sub
 
 Sub INS_AND
-	'checked
 	'accumulator AND memory
 	get_data
 	cpu.acc = cpu.acc And *tdata
-	If cpu.acc = 0 Then cpu.flagZ = 1 Else cpu.FlagZ = 0
-	If Bit(cpu.acc,7) Then cpu.FlagS = 1 Else cpu.FlagS = 0
+	If cpu.acc = 0 Then set_z Else clear_z
+	If Bit(cpu.acc,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_ASL
 	'shift left
-	'checked
 	get_data
-	If Bit(*tdata,7) Then cpu.flagC = 1 Else cpu.FlagC = 0
+	If Bit(*tdata,7) Then set_c Else clear_c
 	*tdata Shl = 1
-	If Bit(*tdata,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	If tdata = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
+	If Bit(*tdata,7) Then set_s Else clear_s
+	If tdata = 0 Then set_z Else clear_z
 End Sub
 
 Sub INS_BCC
-	'checked
+	'branch if carry clear
 	get_data
-	If cpu.flagC = 0 Then cpu.pc+ = *tdata
+	If flag_C = 0 Then cpu.pc+ = *tdata
 End Sub
 
 Sub INS_BCS
-	'checked
+	'branch if carry set
 	get_data
-	If cpu.flagC = 1 Then cpu.pc+= *tdata
+	If flag_c = 1 Then cpu.pc+= *tdata
 End Sub
 
 Sub INS_BEQ
-	'checked
 	get_data
-	If cpu.flagZ = 1 Then cpu.pc+= *tdata
+	If flag_z = 1 Then cpu.pc+= *tdata
 End Sub
 
 Sub INS_BIT
-	'checked
-	'and WTF does simply not comparing cpu.acc AND *tdata to 0 not work
-	' how can this condition fail? "If cpu.acc AND *tdata = 0 or if cpu.acc AND *tdata != 0
 	Dim bittmp As UInteger
 	get_data
 	bittmp = cpu.acc And *tdata
-	If Bit(*tdata,6) Then cpu.flagV = 1 Else cpu.flagV = 0
-	If Bit(*tdata,7) Then cpu.FlagS = 1 Else cpu.flagS = 0
-	If bittmp = 0 Then cpu.FlagZ = 1 Else cpu.flagZ = 0
+	If Bit(*tdata,6) Then set_v Else clear_v
+	If Bit(*tdata,7) Then set_s Else clear_s
+	If bittmp = 0 Then set_z Else clear_z
 End Sub
 
 Sub INS_BMI
-	'checked
 	get_data
-	If cpu.flagS = 1 Then cpu.pc+ = *tdata
+	If flag_s = 1 Then cpu.pc+ = *tdata
 End Sub
 
 Sub INS_BNE
-	'checked
 	get_data
-	If cpu.flagZ = 0 Then cpu.pc+= *tdata
+	If flag_z = 0 Then cpu.pc+= *tdata
 End Sub
 
 Sub INS_BPL
-	'checked
 	get_data
-	If cpu.flagS = 0 Then cpu.pc+ = *tdata
+	If flag_s = 0 Then cpu.pc+ = *tdata
 End Sub
 
 Sub INS_BRK
@@ -211,145 +202,120 @@ Sub INS_BRK
 	cpu.PC += 1
 	writemem(&h100+cpu.sp,cpu.acc)
 	cpu.sp-=1
-	If cpu.flagC = 1 Then cpu.ps = BitSet(cpu.ps,0) Else cpu.ps = BitReset(cpu.ps,0)
-	If cpu.flagZ = 1 Then cpu.ps = BitSet(cpu.ps,1) Else cpu.ps = BitReset(cpu.ps,1)
-	If cpu.flagI = 1 Then cpu.ps = BitSet(cpu.ps,2) Else cpu.ps = BitReset(cpu.ps,2)
-	If cpu.flagD = 1 Then cpu.ps = BitSet(cpu.ps,3) Else cpu.ps = BitReset(cpu.ps,3)
-	If cpu.flagB = 1 Then cpu.ps = BitSet(cpu.ps,4) Else cpu.ps = BitReset(cpu.ps,4)
-	If cpu.flagU = 1 Then cpu.ps = BitSet(cpu.ps,5) Else cpu.ps = BitReset(cpu.ps,5)
-	If cpu.flagV = 1 Then cpu.ps = BitSet(cpu.ps,6) Else cpu.ps = BitReset(cpu.ps,6)
-	If cpu.flagS = 1 Then cpu.ps = BitSet(cpu.ps,7) Else cpu.ps = BitReset(cpu.ps,7)
 	writemem(&h100+cpu.sp,cpu.ps)
 	cpu.sp-=1
-	cpu.flagB = 1
+	set_b
 	cpu.PC = (cpu.memory(&hFFFF) Shl 8) Or cpu.memory(&hFFFE)
 End Sub
 
 Sub INS_BVC
-	'checked
 	get_data
-	If cpu.flagV = 0 Then cpu.pc+ = *tdata
+	If flag_v = 0 Then cpu.pc+ = *tdata
 End Sub
 
 Sub INS_BVS
-	'checked
 	get_data
-	If cpu.flagV = 1 Then cpu.pc+ = *tdata
+	If flag_v = 1 Then cpu.pc+ = *tdata
 End Sub
 
 Sub INS_CLC
-	'checked
 	'clear carry flag
-	cpu.flagC = 0
-
+	clear_c
 End Sub
 
 Sub INS_CLD
 	'clear dedimal flag
-	'checked
-	cpu.FlagD = 0
-
+	clear_d
 End Sub
 
 Sub INS_CLI
 	'clear interrupt flag
-	'checked
-	cpu.flagI = 0
-
+	clear_i
 End Sub
 
 Sub INS_CLV
 	'clear overflow flag
-	'checked
-	cpu.flagV = 0
-
+	clear_v
 End Sub
 
 Sub INS_CMP
 	'compare accumulator with memory
-	'possibly broken
 	get_data
 	Dim As UByte cmptmp = cpu.acc - *tdata
-	If cmptmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cmptmp,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	If cmptmp >= 0 Then cpu.flagC = 1 Else Cpu.flagC = 0
+	If cmptmp = 0 Then set_z Else clear_z
+	If Bit(cmptmp,7) Then set_s Else clear_s
+	If cmptmp >= 0 Then set_c Else clear_c
 End Sub
 
 Sub INS_CPX
 	'compare X with memory
-	'possibly broken
 	get_data
 	Dim As UByte cmptmp = cpu.x - *tdata
-	If cmptmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cmptmp,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	If cmptmp >= 0 Then cpu.flagC = 1 Else Cpu.flagC = 0
+	If cmptmp = 0 Then set_z Else clear_z
+	If Bit(cmptmp,7) Then set_s Else clear_s
+	If cmptmp >= 0 Then set_c Else clear_c
 End Sub
 
 Sub INS_CPY
 	'compare Y with memory
-	'possibly broken
 	get_data
 	Dim As UByte cmptmp = cpu.y - *tdata
-	If cmptmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cmptmp,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	If cmptmp >= 0 Then cpu.flagC = 1 Else Cpu.flagC = 0
+	If cmptmp = 0 Then set_z Else clear_z
+	If Bit(cmptmp,7) Then set_s Else clear_s
+	If cmptmp >= 0 Then set_c Else clear_c
 End Sub
 
 Sub INS_DEC
 	'decrement memory
 	get_data
 	*tdata -= 1
-	If *tdata = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(*tdata,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-
+	If *tdata = 0 Then set_z Else clear_z
+	If Bit(*tdata,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_DEX
 	'Decrement X register
 	cpu.X -=1
-	If cpu.x = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cpu.x,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	
+	If cpu.x = 0 Then set_z Else Clear_z
+	If Bit(cpu.x,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_DEY
 	'Decrement Y register
 	cpu.Y -=1
-	If cpu.y = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cpu.y,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-
+	If cpu.y = 0 Then set_z Else clear_z
+	If Bit(cpu.y,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_EOR
 	'xor accumulator
 	get_data
 	cpu.acc = cpu.acc Xor *tdata
-	If cpu.acc = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cpu.acc,7) Then cpu.flagS = 1 Else cpu.flagS = 0
+	If cpu.acc = 0 Then set_z Else clear_z
+	If Bit(cpu.acc,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_INC
 	'increment memory
 	get_data
 	*tdata += 1
-	If *tdata = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(*tdata,7) Then cpu.flagS = 1 Else cpu.flagS = 0
+	If *tdata = 0 Then set_z Else clear_z
+	If Bit(*tdata,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_INX
 	'Increment X register
 	cpu.x+=1
-	If cpu.x = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cpu.x,7) Then cpu.flagS = 1 Else cpu.flagS = 0
+	If cpu.x = 0 Then set_z Else clear_z
+	If Bit(cpu.x,7) Then set_s Else clear_s
 
 End Sub
 
 Sub INS_INY
 	'Increment Y register
 	cpu.y+=1
-	If cpu.y = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cpu.y,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	
+	If cpu.y = 0 Then set_z Else clear_z
+	If Bit(cpu.y,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_JMP
@@ -371,70 +337,56 @@ Sub INS_LDA
 	'load accumulator
 	get_data
 	cpu.acc = *tdata
-	If cpu.acc = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cpu.acc,7) Then cpu.flagS = 1 Else cpu.flagS = 0
+	If cpu.acc = 0 Then set_z Else clear_z
+	If Bit(cpu.acc,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_LDX
 	'load x register
 	get_data
 	cpu.x = *tdata
-	If cpu.x = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cpu.x,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-
+	If cpu.x = 0 Then set_z Else clear_z
+	If Bit(cpu.x,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_LDY
 	'load y register
 	get_data
 	cpu.y = *tdata
-	If cpu.y = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cpu.y,7) Then cpu.flagS = 1 Else cpu.flagS = 0
+	If cpu.y = 0 Then set_z Else clear_z
+	If Bit(cpu.y,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_LSR
 	'logical shift right
-	'checked
 	get_data
-	If Bit(*tdata,0) Then cpu.flagC = 1 Else cpu.flagC = 0
+	If Bit(*tdata,0) Then set_c Else clear_c
 	*tdata Shr = 1
-	If Bit(*tdata,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	If *tdata = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
+	If Bit(*tdata,7) Then set_s Else clear_s
+	If *tdata = 0 Then set_z Else clear_z
 
 End Sub
 
 Sub INS_NOP
-	'checked
 	'no operation
-	
 End Sub
 
 Sub INS_ORA
 	'or accumulator
 	get_data
 	cpu.acc = cpu.acc Or *tdata
-	If cpu.acc = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cpu.acc,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-
+	If cpu.acc = 0 Then set_z Else clear_z
+	If Bit(cpu.acc,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_PHA
 	'push accumulator to stack
 	writemem(&h100+cpu.sp,cpu.acc)
 	cpu.sp-=1
-
 End Sub
 
 Sub INS_PHP
 	'push processor status to stack
-	If cpu.flagC = 1 Then cpu.ps = BitSet(cpu.ps,0) Else cpu.ps = BitReset(cpu.ps,0)
-	If cpu.flagZ = 1 Then cpu.ps = BitSet(cpu.ps,1) Else cpu.ps = BitReset(cpu.ps,1)
-	If cpu.flagI = 1 Then cpu.ps = BitSet(cpu.ps,2) Else cpu.ps = BitReset(cpu.ps,2)
-	If cpu.flagD = 1 Then cpu.ps = BitSet(cpu.ps,3) Else cpu.ps = BitReset(cpu.ps,3)
-	If cpu.flagB = 1 Then cpu.ps = BitSet(cpu.ps,4) Else cpu.ps = BitReset(cpu.ps,4)
-	If cpu.flagU = 1 Then cpu.ps = BitSet(cpu.ps,5) Else cpu.ps = BitReset(cpu.ps,5)
-	If cpu.flagV = 1 Then cpu.ps = BitSet(cpu.ps,6) Else cpu.ps = BitReset(cpu.ps,6)
-	If cpu.flagS = 1 Then cpu.ps = BitSet(cpu.ps,7) Else cpu.ps = BitReset(cpu.ps,7)
 	writemem(&h100+cpu.sp,cpu.ps)
 	cpu.sp-=1
 End Sub
@@ -443,22 +395,14 @@ Sub INS_PLA
 	'pull from stack to accumulator
 	cpu.sp+=1
 	cpu.acc = readmem(&h100+cpu.sp)
-	If cpu.acc = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cpu.acc,7) Then cpu.flagS = 1 Else cpu.flagS = 0
+	If cpu.acc = 0 Then set_z Else clear_z
+	If Bit(cpu.acc,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_PLP
 	'pull processor status from stack
 	cpu.sp+=1
 	cpu.ps = readmem(&h100+cpu.sp)
-	If Bit(cpu.ps,0) Then cpu.flagC = 1 Else cpu.flagC = 0
-	If Bit(cpu.ps,1) Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cpu.ps,2) Then cpu.flagI = 1 Else cpu.flagI = 0
-	If Bit(cpu.ps,3) Then cpu.flagD = 1 Else cpu.flagD = 0
-	If Bit(cpu.ps,4) Then cpu.flagB = 1 Else cpu.flagB = 0
-	If Bit(cpu.ps,5) Then cpu.flagU = 1 Else cpu.flagU = 0
-	If Bit(cpu.ps,6) Then cpu.flagV = 1 Else cpu.flagV = 0
-	If Bit(cpu.ps,7) Then cpu.flagS = 1 Else cpu.flagS = 0
 End Sub
 
 Sub INS_ROL
@@ -468,10 +412,10 @@ Sub INS_ROL
 	Dim As UByte roltmp
 	roltmp = *tdata
 	*tdata Shl = 1 'shift whole thing left
-	If cpu.flagC = 1 Then *tdata = BitSet(*tdata,0) Else *tdata = BitReset(*tdata,0)'  put old carry bit in new bit 0
-	If Bit(roltmp,7) Then cpu.flagC = 1 Else cpu.flagC = 0 ' put old bit 7 in new carry bit
-	If *tdata = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(*tdata,7) Then cpu.flagS = 1 Else cpu.flagS = 0
+	If flag_c = 1 Then *tdata = BitSet(*tdata,0) Else *tdata = BitReset(*tdata,0)'  put old carry bit in new bit 0
+	If Bit(roltmp,7) Then set_c Else clear_c ' put old bit 7 in new carry bit
+	If *tdata = 0 Then set_z Else clear_z
+	If Bit(*tdata,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_ROR
@@ -481,10 +425,10 @@ Sub INS_ROR
 	Dim As UByte roltmp
 	roltmp = *tdata
 	*tdata Shr = 1 'shift whole thing right
-	If cpu.flagC = 1 Then *tdata = BitSet(*tdata,7) Else *tdata = BitReset(*tdata,7)'  put old carry bit in new bit 7
-	If Bit(roltmp,0) Then cpu.flagC = 1 Else cpu.flagC = 0 ' put old bit 0 in new carry bit
-	If *tdata = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(*tdata,7) Then cpu.flagS = 1 Else cpu.flagS = 0
+	If flag_c = 1 Then *tdata = BitSet(*tdata,7) Else *tdata = BitReset(*tdata,7)'  put old carry bit in new bit 7
+	If Bit(roltmp,0) Then set_c Else clear_c ' put old bit 0 in new carry bit
+	If *tdata = 0 Then set_z Else clear_z
+	If Bit(*tdata,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_RTI
@@ -493,7 +437,6 @@ Sub INS_RTI
 	cpu.ps = readmem(&h100+cpu.sp)
 	cpu.sp+=1
 	cpu.pc = readmem(&h100+cpu.sp)
-
 End Sub
 
 Sub INS_RTS
@@ -505,66 +448,48 @@ Sub INS_RTS
 	suspicious_array(0) = readmem(&h100+cpu.sp)
 	suspicious_pointer = @suspicious_array(0)
 	cpu.pc = *suspicious_pointer
-	'Dim hbyte As UByte
-	'Dim lbyte As UByte
-	'return from subroutine
-	'cpu.sp+=1
-	'LByte = readmem(&h100+cpu.sp)
-	'cpu.sp+=1
-	'hbyte = readmem(&h100+cpu.sp)
-	'cpu.pc = ValInt("&h" & Hex(lbyte,2) & Hex(hbyte,2))
 End Sub
 
 Sub INS_SBC
 	'subtract with carry
-	'maybe right
 	Dim As Integer sbctmp
 	get_data
-	sbctmp = cpu.acc - *tdata - (1 - cpu.flagC)
-	If sbctmp = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(sbctmp,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	If sbctmp >= 0 Then cpu.flagC = 1 Else cpu.flagC = 0
-	cpu.flagV=IIf((((cpu.acc Xor sbctmp) And &H80) And ((cpu.acc Xor *tdata) And &H80)),1,0)
+	sbctmp = cpu.acc - *tdata - (1 - flag_c)
+	If sbctmp = 0 Then set_z Else clear_z
+	If Bit(sbctmp,7) Then set_s Else clear_s
+	If sbctmp >= 0 Then set_c Else clear_c
+	If ((cpu.acc Xor sbctmp) And &H80) And ((cpu.acc Xor *tdata) And &H80) Then set_v Else clear_v
 	cpu.acc = sbctmp And &Hff
 End Sub
 
 Sub INS_SEC
-	'checked
 	'Set carry flag
-	cpu.flagC = 1
-	
+	set_c
 End Sub
 
 Sub INS_SED
-	'checked
 	'Set decimal flag
-	cpu.flagD = 1
-	
+	set_d
 End Sub
 
 Sub INS_SEI
-	'checked
 	'set interrupt flag
-	cpu.flagI = 1
-	
+	set_i
 End Sub
 
 Sub INS_STA
-	'checked
 	'store accumulator in memory
 	get_data
 	writemem(taddr,cpu.acc)
 End Sub
 
 Sub INS_STX
-	'checked
 	'store x in memory
 	get_data
 	writemem(taddr,cpu.x)
 End Sub
 
 Sub INS_STY
-	'checked
 	'store y in memory
 	get_data
 	writemem(taddr,cpu.y)
@@ -573,32 +498,29 @@ End Sub
 Sub INS_TAX
 	'transfer accumulator to X
 	cpu.x = cpu.acc
-	If cpu.x = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cpu.x,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	
+	If cpu.x = 0 Then set_z Else clear_z
+	If Bit(cpu.x,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_TAY
 	'transfer accumulator to Y
 	cpu.y = cpu.acc
-	If cpu.y = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cpu.y,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	
+	If cpu.y = 0 Then set_z Else clear_z
+	If Bit(cpu.y,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_TSX
 	'transfer stack pointer to x
 	cpu.x = cpu.sp
-	If cpu.x = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cpu.x,7) Then cpu.flagS = 1 Else cpu.flagS = 0
+	If cpu.x = 0 Then set_z Else clear_z
+	If Bit(cpu.x,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_TXA
 	'transfer X to accumulator
 	cpu.acc = cpu.x
-	If cpu.acc = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cpu.acc,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	
+	If cpu.acc = 0 Then set_z Else clear_z
+	If Bit(cpu.acc,7) Then set_s Else clear_s
 End Sub
 
 Sub INS_TXS
@@ -609,7 +531,6 @@ End Sub
 Sub INS_TYA
 	'transfer Y to accumulator
 	cpu.acc = cpu.y
-	If cpu.acc = 0 Then cpu.flagZ = 1 Else cpu.flagZ = 0
-	If Bit(cpu.acc,7) Then cpu.flagS = 1 Else cpu.flagS = 0
-	
+	If cpu.acc = 0 Then set_z Else clear_z
+	If Bit(cpu.acc,7) Then set_s Else clear_s
 End Sub
