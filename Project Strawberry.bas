@@ -58,7 +58,7 @@ Declare Sub loadini 'Load the ini file
 Dim Shared As UByte debug
 Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=1
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
-Dim Shared As Single start, lastframetime,opsPerSecond
+Dim Shared As Single start, lastframetime,opsPerSecond, stepstart
 Dim Shared As Any Ptr strawberry
 Dim Shared As UInteger status_timer
 
@@ -405,10 +405,12 @@ Do
 '	If ppu.Stat = 0 Then ticks = 0 
 	If ticks >=85 Then ppuLoop
 	If ticks >=85 Then ticks = 0 
+	nextskip-=1
 	If debug = 1 And nextskip = 0 Then
+		stepstart = Timer
 		nextskip = opstoskip
 		While Not MultiKey(SC_SPACE) And Not MultiKey(SC_ESCAPE) And Not MultiKey(SC_PAGEUP)
-			Sleep 10
+			Sleep 100
 			If MultiKey(SC_BACKSPACE) Then
 				If opstoskip = 1 Then
 					opstoskip = 10
@@ -420,11 +422,15 @@ Do
 					opstoskip = 1
 				EndIf
 				nextskip = opstoskip
-				Locate 2,1: Print "Total ops: " & totalops & " | Stepping by: " & opstoskip & "                       "
+				status
 				While MultiKey(SC_BACKSPACE):Sleep 10: Wend
 			EndIf
 		Wend
 		While MultiKey(SC_SPACE): Sleep 10: Wend
+		start += (Timer-stepstart)
+		If start > Timer Then start = Timer
+		status
+		simplegraphics
 	EndIf
 	status_timer+=1
 	If status_timer >= OpsPerSecond/20  Then

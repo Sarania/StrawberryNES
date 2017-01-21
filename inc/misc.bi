@@ -24,6 +24,7 @@ Sub keycheck
 	'This  is the keycheck for the "simple" 6502 programs. Basically it's memory mapped IO. This stuff will need to go when we work on NES/Atari/whatever
 	If MultiKey(SC_PAGEUP) Then
 		If debug = 1 Then debug = 0 Else debug = 1
+		nextskip = opstoskip
 	While MultiKey(SC_PAGEUP):Sleep 10: wend
 	EndIf
 	If MultiKey(SC_w) Then
