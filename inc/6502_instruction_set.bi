@@ -209,20 +209,21 @@ Sub INS_BRK
 		cae
 	EndIf
 	'Break
-	cpu.ps = BitSet(cpu.ps,4)
-	
-	'Print "Program Issued BRK command!"
-	'Print instruction
-	'Print amode
-	'Print Hex(cpu.pc)
-	'cpu.pc = (cpu.memory(&hFFFF) Shl 8)Or cpu.memory(&hFFFE)
-	'Sleep 1000,1
-	'Sleep
-	'Sleep
-	'cae
-	
- 	
-
+	cpu.PC += 1
+	writemem(&h100+cpu.sp,cpu.acc)
+	cpu.sp-=1
+	If cpu.flagC = 1 Then cpu.ps = BitSet(cpu.ps,0) Else cpu.ps = BitReset(cpu.ps,0)
+	If cpu.flagZ = 1 Then cpu.ps = BitSet(cpu.ps,1) Else cpu.ps = BitReset(cpu.ps,1)
+	If cpu.flagI = 1 Then cpu.ps = BitSet(cpu.ps,2) Else cpu.ps = BitReset(cpu.ps,2)
+	If cpu.flagD = 1 Then cpu.ps = BitSet(cpu.ps,3) Else cpu.ps = BitReset(cpu.ps,3)
+	If cpu.flagB = 1 Then cpu.ps = BitSet(cpu.ps,4) Else cpu.ps = BitReset(cpu.ps,4)
+	If cpu.flagU = 1 Then cpu.ps = BitSet(cpu.ps,5) Else cpu.ps = BitReset(cpu.ps,5)
+	If cpu.flagV = 1 Then cpu.ps = BitSet(cpu.ps,6) Else cpu.ps = BitReset(cpu.ps,6)
+	If cpu.flagS = 1 Then cpu.ps = BitSet(cpu.ps,7) Else cpu.ps = BitReset(cpu.ps,7)
+	writemem(&h100+cpu.sp,cpu.ps)
+	cpu.sp-=1
+	cpu.flagB = 1
+	cpu.PC = (cpu.memory(&hFFFF) Shl 8) Or cpu.memory(&hFFFE)
 End Sub
 
 Sub INS_BVC

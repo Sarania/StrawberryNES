@@ -20,8 +20,7 @@ Declare Sub drawPix
 Declare Sub ppuLoop
 
 Sub vblank
-	cpu.memory(&h2002) Or= &h80 'Set Vbl Flag in PPU STATUS
-	If Bit(cpu.memory(&h2000),7) = 1 Then cpu.pc = (cpu.memory(&hFFFB) Shl 8) Or cpu.memory(&hFFFA) 'Are NMIs Enabled? VECTOR!R!
+
 End Sub
 Sub writePPUReg(ByVal value As UByte, ByVal addr As UShort)
 Dim As UByte scrollFlop 'Flip Flop for SCROLL
@@ -60,7 +59,8 @@ Function readPPUReg(ByVal addr As UByte)As ushort
 		Case 2
 		value = cpu.memory(&h2002) 
 		cpu.memory(&h2002) = BitReset(cpu.memory(&h2002),7) 'Clear VBL Flag on Read
-		
+		Print "Reading PPU STATUS "
+		cpu.memory(&h500) = &he
 		Case 4
 		'Need to work on this. Too lazy now. 
 		Case 7 
@@ -69,27 +69,29 @@ Function readPPUReg(ByVal addr As UByte)As ushort
 	End Select
 	Return value
 End Function
-Sub updateDrawCrap
-	'0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00 
+Sub drawScreen
+	/'0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00 
 	ppu.baseNameTable = (cpu.memory(&h2000)And 1)*&h400
 	'0 = $0000; 1 = $1000;
 	ppu.baseTile = (ppu.VRAM(ppu.VRAM(ppu.baseNameTable)+ppu.xScroll))
+	'/
 End Sub
 Sub drawPix
 	
 	
 End Sub
 Sub ppuLoop
-	
-
-	Dim As UByte counter
+	Dim As UByte dot
+	If ppu.scanline > 240 Then dot = 255 Else dot = 0 
 	Do
+		
+	dot += 1
 	
-	drawPix
-	counter += 1
-	ppu.scanline += 1
-	If Bit(cpu.memory(&h2002),7) = 1 Then ppu.vScan+=1
-	'If ppu.vScan = 20 Then cpu.memory(&h2002) = BitReset(cpu.memory(&h2002), 7) 
-	Loop While counter = 255 'Full Scanline drawn  '	'cpu.pc = (cpu.memory(&hFFFB) Shl 8) Or cpu.memory(&hFFFA) 'Are NMIs Enabled? VECTOR!
-	If ppu.scanline = 240 Then vblank
+	
+	
+	
+	Loop Until dot = 255
+'''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
 End Sub
