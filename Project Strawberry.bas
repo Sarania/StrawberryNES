@@ -91,7 +91,7 @@ Type cpus
 	flagZ As UByte ' Zero flag
 	flagC As UByte ' Carry flag
 	PC As UShort 'program counter
-	sp As UShort = 511 'stack pointer
+	sp As ubyte = &hFF 'stack pointer
 	memory(0 To 65535) As UByte 'RAM
 	'nesReset As Integer 'reset vector
 End Type
@@ -161,7 +161,8 @@ Sub status
 	Put (1,1),blackout,pset
 	ImageDestroy(blackout)
 	font.set_size 10
-	fprint 1,15, "Emulator mode: " & emulatorMode 
+	fprint 1,15, "SCANLINE COUNT " & ppu.scanline
+	'fprint 1,15, "Emulator mode: " & emulatorMode 
 	fprint 1,25, "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
    fprint 1,35, "Total ops: " & totalops & " | Stepping by: " & opstoskip & "                     "
 	fprint 1,45, "Ops per second: " &  opsPerSecond & "                         "
@@ -263,6 +264,7 @@ Do
 	cpu.memory(&hfe) = Rnd*255 ' random number generator for simple 6502 programs
 	'====================================REMOVE THIS======================================================
 	If totalops = 27000 Then cpu.memory(&h2002) = &h80 'Temporary tell the system that the PPU is warmed up
+	
 	'====================================REMOVE THIS======================================================
 	keycheck
 	cpu.oldpc = cpu.pc 'this is for storing debug information
@@ -400,7 +402,9 @@ Do
 			Loop While InKey$ = ""
 			sleep
 	End Select
-
+'	If ppu.Stat = 0 Then ticks = 0 
+	If ticks >=85 Then ppuLoop
+	If ticks >=85 Then ticks = 0 
 	If debug = 1 And nextskip = 0 Then
 		nextskip = opstoskip
 		While Not MultiKey(SC_SPACE) And Not MultiKey(SC_ESCAPE) And Not MultiKey(SC_PAGEUP)
@@ -434,7 +438,7 @@ Do
                                        Sanity Checks
 ================================================================================'/
 
-	If cpu.sp > 511 Or cpu.sp < 256 Then
+	If cpu.sp > 255 Or cpu.sp < 0 Then
 		Cls
 		Print "Stack pointer out of bounds!"
 		Sleep
