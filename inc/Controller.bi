@@ -11,5 +11,4 @@ Sub INS_ReadPad2
 	'Read controller 2 with 20 consectutive read to $4017
 	'All reads are the same as controllers 1 and 3, but the address read is on the next byte in RAM
 	ctrlRead2 += 1
-	
 End Sub

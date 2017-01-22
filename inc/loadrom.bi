@@ -74,11 +74,11 @@ Sub loadROM
 		EndIf
 		Cls
 		For i As Integer = 0 To (header.prgSize*16*1024)-1
-			cpu.memory(&h8000+i) = prgRom(i)
+			cpu.memory(32768+i) = prgRom(i)
 		Next
 		If header.prgSize*16*1024 = 16384 Then
 			For i As Integer = 0 To (header.prgSize*16*1024)-1
-				cpu.memory(&hc000+i) = prgRom(i)
+				cpu.memory(49152+i) = prgRom(i)
 			Next
 		If header.chrSize*8*1024 = 8092 Then
 			For i as Integer = 0 To (header.chrSize*8*1024)-1

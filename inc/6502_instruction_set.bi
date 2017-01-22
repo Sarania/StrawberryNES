@@ -188,6 +188,7 @@ Sub INS_BPL
 	If flag_s = 0 Then cpu.pc+ = *tdata
 End Sub
 
+
 Sub INS_BRK
 	If emulatorMode = "6502" Then
 		simplegraphics
@@ -200,12 +201,20 @@ Sub INS_BRK
 	EndIf
 	'Break
 	cpu.PC += 1
-	writemem(&h100+cpu.sp,cpu.acc)
-	cpu.sp-=1
-	writemem(&h100+cpu.sp,cpu.ps)
-	cpu.sp-=1
+	writemem((cpu.sp+&h100),(cpu.pc Shr 8))
+	cpu.sp -=1
+	writemem((cpu.sp+&h100), (cpu.pc And &hff))
+	cpu.sp -=1
+	writemem(cpu.sp+&h100,cpu.ps)
+	cpu.sp -=1
 	set_b
-	cpu.PC = (cpu.memory(&hFFFF) Shl 8) Or cpu.memory(&hFFFE)
+	set_i
+	Dim suspicious_pointer As UShort Ptr
+	Dim suspicious_array(0 To 1) As UByte
+	suspicious_array(0) = readmem(&HFFFE)
+	suspicious_array(1) = readmem(&HFFFF)
+	suspicious_pointer = @suspicious_array(0)
+	cpu.pc = *suspicious_pointer
 End Sub
 
 Sub INS_BVC

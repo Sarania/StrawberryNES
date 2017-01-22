@@ -48,13 +48,14 @@ Using fb
 #Include Once "zlib.bi"
 #Include Once "Inc/freetypeclass.bi" 'fontz
 Declare Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As ULongInt ' for reading memory
-Declare Sub writemem(ByVal addr As ULongInt, byval value As UByte) 'write a value to NES memory
+Declare Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write a value to NES memory
 Declare Sub fprint(ByVal x As Integer, ByVal y As Integer, ByVal text As String, ByVal c As Integer = RGB(255,255,255))'Print to the screen with a font
 Declare Sub status 'print various status stuff to the screen
 Declare Sub initcpu 'initialize the 6502
 Declare Sub loadROM 'load a ROM in to memory
 Declare Sub CAE 'Cleanup and exit
 Declare Sub loadini 'Load the ini file
+Declare Sub nmi
 Dim Shared As UByte debug
 Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=1
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
@@ -102,19 +103,50 @@ Type cpus
 	#Define clear_V cpu.ps = cpu.ps And 191 'clear overflow flag
 	#Define clear_U cpu.ps = cpu.ps And 223 'clear useless flag
 	#Define clear_B cpu.ps = cpu.ps And 239 'clear break flag
-	#Define clear_D cpu.ps = cpu.ps And 247 'clear decimal flag 
+	#Define clear_D cpu.ps = cpu.ps And 247 'clear decimal flag
 	#Define clear_I cpu.ps = cpu.ps And 251 'clear interrupt flag
 	#Define clear_Z cpu.ps = cpu.ps And 253 'clear zero flag
-	#Define clear_C cpu.ps = cpu.ps and 254 'clear carry flag
-	
+	#Define clear_C cpu.ps = cpu.ps And 254 'clear carry flag
+
 	PC As UShort 'program counter
-	sp As ubyte = &hFF 'stack pointer
+	sp As UByte = &hFF 'stack pointer
 	memory(0 To 65535) As UByte 'RAM
 	'nesReset As Integer 'reset vector
 End Type
 
+Type ppus
+	scanline As UInteger
+	PPUCTRL As UByte
+	PPUMASK As UByte
+	PPUSTATUS As UByte
+	OAMADDR As UByte
+	OAMDATA As UByte
+	PPUSCROLL As UByte
+	PPUADDR As UByte
+	PPUDATA As UByte
+	OAMDMA As UByte
+	#define  PPUCTRL_V        ( ppu.ppuctrl And 128 ) / 128
+	#Define  PPUCTRL_P        ( ppu.ppuctrl And 64 ) / 64
+	#Define  PPUCTRL_H        ( ppu.ppuctrl And 32 ) / 32
+	#Define  PPUCTRL_B        ( ppu.ppuctrl And 16 ) / 16
+	#Define  PPUCTRL_S        ( PPU.PPUCTRL And 8 ) / 8
+	#Define  PPUCTRL_I        ( PPU.PPUCTRL And 4 ) / 4
+	#Define  PPUCTRL_NN      (( PPU.PPUCTRL And 3 ) * &h400 ) + &h2000
+	#Define PPUMASK_INTENSIFY_B    ( PPU.PPUMASK And 128 ) / 128
+	#Define PPUMASK_INTENSIFY_G    ( PPU.PPUMASK And 64 ) / 64
+	#Define PPUMASK_INTENSIFY_R    ( PPU.PPUMASK And 32 ) / 32
+	#Define  PPUMASK_S       ( PPU.PPUMASK And 16 ) / 16
+	#Define  PPUMASK_B       ( PPU.PPUMASK And 8 ) / 8
+	#Define  PPUMASK_SL      ( PPU.PPUMASK And 4 ) / 4
+	#Define  PPUMASK_BL      ( PPU.PPUMASK And 2 ) / 2
+	#Define  PPUMASK_G       ( PPU.PPUMASK And 1 ) 
+	#Define  PPUSTATUS_V     ( PPU.PPUSTATUS And 128 ) / 128
+	#Define  PPUSTATUS_S     ( PPU.PPUSTATUS And 64 ) / 64
+	#Define  PPUSTATUS_O     ( PPU.PPUSTATUS And 32 ) / 32 
+End Type
+
 Type headers
-	signature(0 to 3) As Byte
+	signature(0 To 3) As Byte
 	prgSize As UByte 'in 16KB pages
 	chrSize As UByte 'in 8KB pages
 	Flags6 As UByte
@@ -122,14 +154,15 @@ Type headers
 	prgRAMSize As UByte 'in 8kb pages
 	Flags9 As UByte
 	Flags10 As UByte
-	zeros (0 To 4) As ubyte
+	zeros (0 To 4) As UByte
 End Type
 
 ReDim Shared As UByte rom(0 To 1)
 ReDim Shared As UByte prgROM(0 To 1)
 ReDim Shared As UByte chrROM(0 To 1)
 ReDim Shared As UByte prgRAM(0 To 1)
-Dim Shared cpu as cpus '6502 CPU
+Dim Shared cpu As cpus '6502 CPU
+Dim Shared ppu As ppus 'suspicious PPU
 Dim Shared header As headers
 #Include Once "inc/loadrom.bi"
 loadini ' need to load it here because of font stuff
@@ -162,7 +195,7 @@ font.set_back_color(RGB(0,0,0))
 #Include Once "inc/6502_instruction_set.bi" ' contains the instruction set
 #Include Once "inc/decoder.bi" ' decodes hex opcodes to asm
 emulatorMode = "6502"
-lastframetime = timer
+lastframetime = Timer
 version = "0.40 alpha"
 debug = 1
 opstoskip = 1
@@ -175,31 +208,30 @@ nextskip = 1
 Sub status
 	Dim blackout As Any Ptr
 	blackout = ImageCreate(screenx/2,screeny,RGB(0,0,0))
-	Put (1,1),blackout,pset
+	Put (1,1),blackout,PSet
 	ImageDestroy(blackout)
 	font.set_size 10
-	fprint 1,15, "SCANLINE COUNT " & ppu.scanline
-	'fprint 1,15, "Emulator mode: " & emulatorMode 
+	fprint 1,15, "Emulator mode: " & emulatorMode
 	fprint 1,25, "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
-   fprint 1,35, "Total ops: " & totalops & " | Stepping by: " & opstoskip & "                     "
+	fprint 1,35, "Total ops: " & totalops & " | Stepping by: " & opstoskip & "                     "
 	fprint 1,45, "Ops per second: " &  opsPerSecond & "                         "
-   fprint 1,65, "Registers:                                           "
-	fprint 1,75, "________________________               "                                        
+	fprint 1,65, "Registers:                                           "
+	fprint 1,75, "________________________               "
 	fprint 1,85, "A: " & IIf(cpu.acc < &h10,"0" & Hex(cpu.acc),Hex(cpu.acc)) & " X: " & IIf(cpu.x < &h10,"0" & Hex(cpu.x),Hex(cpu.x)) & " Y: " & IIf(cpu.y < &h10,"0" & Hex(cpu.y),Hex(cpu.y)) & "                         "
 	fprint 1,95, "PC: " & cpu.PC & " ($" & Hex(cpu.pc) & ")" & "                         "
-   fprint 1,105, "Stack pointer: " & cpu.sp - &hff & "($" & Hex(cpu.sp-&hff) & ")" & "                         "
+	fprint 1,105, "Stack pointer: " & cpu.sp - &hff & "($" & Hex(cpu.sp-&hff) & ")" & "                         "
 	Line(1,115)-(120,143),RGB(255,255,255),b
 	fprint 3,125, "N   V   -   B   D   I   Z   C"
 	Line (1,130)-(120,130),RGB(255,255,255)
 	'fprint 3,140, cpu.flagS & "   " & cpu.flagV & "   " & cpu.flagU & "   " & cpu.flagB & "   " & cpu.flagD & "   " & cpu.flagI & "   " & cpu.flagZ & "   " & cpu.flagC
 	fprint 3,140, Flag_S & "   " & Flag_V & "   " & flag_U & "   " & flag_B & "   " & flag_D & "   " & flag_I & "   " & flag_Z & "   " & flag_C
 	For z As UByte = 0 To 6
-	Line (12+(z*15),115)-(12+(z*15),143),RGB(255,255,255)
+		Line (12+(z*15),115)-(12+(z*15),143),RGB(255,255,255)
 	Next
-	fPrint 1,165, "Processor status: " & cpu.ps & " " & " (" & Hex(cpu.ps) & ")"
-	fPrint 1,175, "Message: " & msg
+	fprint 1,165, "Processor status: " & cpu.ps & " " & " (" & Hex(cpu.ps) & ")"
+	fprint 1,175, "Message: " & msg
 	msg = "                                                                 "
-	fPrint 1,185, "Trace:"
+	fprint 1,185, "Trace:"
 	For i As Integer = 1 To 20
 		fprint 1, 195+(i*10), opHistory(i) & "               "
 	Next
@@ -227,25 +259,73 @@ Sub initcpu 'initialize CPU and RAM
 	clear_v
 	set_b
 	set_u
+	ppu.ppuctrl = 0 '00000000
+	ppu.ppumask = 0 '00000000
+	ppu.ppustatus = 160 '10100000
+	ppu.oamaddr = 0 '00000000
+	ppu.ppuscroll = 0 '00000000
+	ppu.ppuaddr = 0 '00000000
+	ppu.ppudata = 0 '00000000
+End Sub
+
+Sub nmi
+	writemem((cpu.sp+&h100),(cpu.pc Shr 8))
+	cpu.sp -=1
+	writemem((cpu.sp+&h100), (cpu.pc And &hff))
+	cpu.sp -=1
+	writemem(cpu.sp+&h100,cpu.ps)
+	cpu.sp -=1
+	set_i
+	Dim suspicious_pointer As UShort Ptr
+	Dim suspicious_array(0 To 1) As UByte
+	suspicious_array(0) = readmem(&HFFFA)
+	suspicious_array(1) = readmem(&HFFFB)
+	suspicious_pointer = @suspicious_array(0)
+	cpu.pc = *suspicious_pointer
+	Cls
+	Print Hex(cpu.PC)
+	Sleep 2000,1
+	ticks+=7
+	For i As Integer = 255 To 0 Step -1
+		opHistory(i) = opHistory(i-1)
+	Next
+	opHistory(0) = "NMI fired on " & totalops & " ops."
 End Sub
 
 Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As ULongInt
-Dim As ULongInt Ptr suspicious_pointer
-Dim As UByte tempmem(0 To 7)
-For q As UByte = 0 To numbytes-1
-	tempmem(q)=cpu.memory(addr+q)
-Next
-suspicious_pointer=@tempmem(0)
-Return *suspicious_pointer
+	Select Case addr
+		Case &h2000 To &h3FFF
+			readmem = readPPUreg(addr And &h2007)
+		Case &h4015
+			'apu stuff
+		Case &h4016
+			'controller stuff
+		Case Else
+			Dim As ULongInt Ptr suspicious_pointer
+			Dim As UByte tempmem(0 To 7)
+			For q As UByte = 0 To numbytes-1
+				tempmem(q)=cpu.memory(addr+q)
+			Next
+			suspicious_pointer=@tempmem(0)
+			readmem = *suspicious_pointer
+	End Select
 End Function
 
 Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write memory
 	If emulatorMode = "6502" Then
 		cpu.memory(addr) = value
 	Else
-	If addr < &h2000 Then cpu.memory(addr And &h7ff) = value 'Write to physical RAM
-	If addr > &h2000 Then writePPUReg(value, addr)
-	End if
+		Select Case addr
+			Case &h2000 To &h3FFF
+				writePPUreg(addr And &h2007, value)
+			Case &h4000 To &h4015, &h4017
+				'apu stuff
+			Case &h4016
+				'controller stuff
+			Case Else
+				cpu.memory(addr) = value
+		End Select
+	End If
 End Sub
 
 Sub loadini 'load the ini. Duh.
@@ -286,7 +366,7 @@ Do
 	cpu.memory(&hfe) = Rnd*255 ' random number generator for simple 6502 programs
 	'====================================REMOVE THIS======================================================
 	If totalops = 27000 Then cpu.memory(&h2002) = &h80 'Temporary tell the system that the PPU is warmed up
-	
+
 	'====================================REMOVE THIS======================================================
 	keycheck
 	cpu.oldpc = cpu.pc 'this is for storing debug information
@@ -408,15 +488,15 @@ Do
 			INS_TYA
 		Case Else
 			status
-			print "Decoder broken somehow. It received " & instruction
+			Print "Decoder broken somehow. It received " & instruction
 			Do
-			Sleep 10
+				Sleep 10
 			Loop While InKey$ = ""
-			sleep
+			Sleep
 	End Select
-'	If ppu.Stat = 0 Then ticks = 0 
+	'	If ppu.Stat = 0 Then ticks = 0
 	If ticks >=85 Then ppuLoop
-	If ticks >=85 Then ticks = 0 
+	If ticks >=85 Then ticks = 0
 	nextskip-=1
 	If debug = 1 And nextskip = 0 Then
 		stepstart = Timer
@@ -430,7 +510,7 @@ Do
 					opstoskip = 100
 				ElseIf opstoskip = 100 Then
 					opstoskip = 1000
-				ElseIf opstoskip = 1000 then
+				ElseIf opstoskip = 1000 Then
 					opstoskip = 1
 				EndIf
 				nextskip = opstoskip
@@ -451,8 +531,8 @@ Do
 		status_timer=0
 	End If
 	If opsPerSecond > opgoal Then Sleep 10
-	
-/'==============================================================================
+
+	/'==============================================================================
                                        Sanity Checks
 ================================================================================'/
 
@@ -462,13 +542,13 @@ Do
 		Sleep
 		CAE
 	EndIf
-	
-	
-	
-/'==============================================================================
+
+
+
+	/'==============================================================================
                                        End sanity checks
 ================================================================================'/
-If logops = 1 Then Print #99, ophistory(0)
+	If logops = 1 Then Print #99, ophistory(0)
 Loop While Not MultiKey(SC_ESCAPE)
-Close 
+Close
 CAE
