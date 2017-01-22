@@ -282,9 +282,6 @@ Sub nmi
 	suspicious_array(1) = readmem(&HFFFB)
 	suspicious_pointer = @suspicious_array(0)
 	cpu.pc = *suspicious_pointer
-	Cls
-	Print Hex(cpu.PC)
-	Sleep 2000,1
 	ticks+=7
 	For i As Integer = 255 To 0 Step -1
 		opHistory(i) = opHistory(i-1)
