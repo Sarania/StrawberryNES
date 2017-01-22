@@ -116,7 +116,7 @@ Sub get_data
 			tdata = @cpu.memory(taddr)
 			cpu.pc+=1
 	End Select
-	opHistory(0) = opHistory(0) & " " & taddr & " " & *tdata
+	opHistory(0) = opHistory(0) & " Addr:" & taddr & " Data:" & *tdata
 End Sub
 Sub INS_ADC
 	'add with carry

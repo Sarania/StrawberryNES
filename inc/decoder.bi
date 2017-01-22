@@ -671,5 +671,5 @@ Sub decode(ByVal opc As UByte)
 		opHistory(i) = opHistory(i-1)
 	Next
 
-	opHistory(0) = instruction & "(" & amode & ") " & flag_Z
+	opHistory(0) = instruction & "(" & amode & ") "
 End Sub

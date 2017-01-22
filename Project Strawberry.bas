@@ -56,6 +56,7 @@ Declare Sub loadROM 'load a ROM in to memory
 Declare Sub CAE 'Cleanup and exit
 Declare Sub loadini 'Load the ini file
 Declare Sub nmi
+Declare Sub Write_The_log
 Dim Shared As UByte debug
 Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=1
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
@@ -348,6 +349,17 @@ Sub loadini 'load the ini. Duh.
 	Close #f
 End Sub
 
+Sub write_the_log
+Print #99, ophistory(0)
+Print #99, "CPU.PC: " & cpu.pc & " (0x" & Hex(cpu.pc) & ") | " & "CPU.SP: " & cpu.sp & " (0x" & Hex(cpu.sp) & ") | " & "CPU.PS: " & cpu.ps & " (0x" & Hex(cpu.ps) & ")"
+Print #99, "CPU.ACC: " & cpu.acc & " (0x" & Hex(cpu.acc) & ") | " & "CPU.X: " & cpu.x & " (0x" & Hex(cpu.x) & ") | " & "CPU.Y: " & cpu.y & " (0x" & Hex(cpu.y) & ")"
+Print #99, "-----------------"
+Print #99, "|N|V|-|B|D|I|Z|C|"
+Print #99, "|" & flag_S & "|" & flag_v & "|" & flag_u & "|" & flag_b & "|" & flag_d & "|" & flag_i & "|" & flag_z & "|" & flag_c & "|"
+Print #99, "-----------------"  
+Print #99, "----------------------------------------------------------------------------------------------------------------"
+End Sub
+
 Sub CAE
 	If strawberry Then ImageDestroy(Strawberry)
 	Close
@@ -553,7 +565,7 @@ Do
 	/'==============================================================================
                                        End sanity checks
 ================================================================================'/
-	If logops = 1 Then Print #99, ophistory(0)
+If logops = 1 Then write_the_log
 Loop While Not MultiKey(SC_ESCAPE)
 Close
 CAE
