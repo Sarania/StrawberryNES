@@ -115,6 +115,8 @@ Type cpus
 End Type
 
 Type ppus
+	sprRAM (0 To &hFF) As UByte
+	vram(0 To &hFFFF) As ubyte
 	scanline As UInteger
 	PPUCTRL As UByte
 	PPUMASK As UByte
@@ -125,6 +127,8 @@ Type ppus
 	PPUADDR As UByte
 	PPUDATA As UByte
 	OAMDMA As UByte
+	sprAddr As UShort
+	vrAddr As UShort
 	#define  PPUCTRL_V        ( ppu.ppuctrl And 128 ) / 128
 	#Define  PPUCTRL_P        ( ppu.ppuctrl And 64 ) / 64
 	#Define  PPUCTRL_H        ( ppu.ppuctrl And 32 ) / 32
@@ -251,6 +255,7 @@ Sub initcpu 'initialize CPU and RAM
 	For i As Integer = 0 To 65535
 		cpu.memory(i) = 0
 	Next
+
 	clear_s
 	clear_z
 	set_i
@@ -259,6 +264,7 @@ Sub initcpu 'initialize CPU and RAM
 	clear_v
 	set_b
 	set_u
+	cpu.PS = &h34 'init status
 	ppu.ppuctrl = 0 '00000000
 	ppu.ppumask = 0 '00000000
 	ppu.ppustatus = 160 '10100000
@@ -292,6 +298,7 @@ End Sub
 Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As ULongInt
 	Select Case addr
 		Case &h2000 To &h3FFF
+			If addr = &h2002 Then cpu.memory(&h2002) And= 127
 			readmem = readPPUreg(addr And &h2007)
 		Case &h4015
 			'apu stuff
@@ -363,6 +370,7 @@ Do
 	cpu.memory(&hfe) = Rnd*255 ' random number generator for simple 6502 programs
 	'====================================REMOVE THIS======================================================
 	If totalops = 27000 Then cpu.memory(&h2002) = &h80 'Temporary tell the system that the PPU is warmed up
+
 
 	'====================================REMOVE THIS======================================================
 	keycheck
@@ -491,7 +499,7 @@ Do
 			Loop While InKey$ = ""
 			Sleep
 	End Select
-	'	If ppu.Stat = 0 Then ticks = 0
+	
 	If ticks >=85 Then ppuLoop
 	If ticks >=85 Then ticks = 0
 	nextskip-=1
