@@ -87,7 +87,6 @@ Sub dumpmemory ' dump memory to 6502dump.mem, for examining with hex or whatever
 	Open "6502dump.mem" For Binary As #f
 	Put #f, 1, cpu.memory()
 	Close #f
-
 End Sub
 
 

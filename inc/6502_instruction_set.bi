@@ -57,9 +57,10 @@ Declare Sub INS_TYA
 Declare Sub get_data
 
 Dim Shared As UShort taddr 'address with either data to be operated on, or the address to use itself
-Dim Shared As byte Ptr tdata ' points at data to be operated on unless I fucked up the pointers again
+Dim Shared As Byte Ptr tdata ' points at data to be operated on unless I fucked up the pointers again
 
 Sub get_data
+	taddr = 0
 	Dim As UShort indaddr
 	'this function will return the proper data to the opcodes depending on the addressing mode. Hopefully!
 	Select Case amode
@@ -109,14 +110,40 @@ Sub get_data
 			taddr = readmem(indaddr,2)
 			tdata = @cpu.memory(taddr)
 			cpu.pc+=1
-		Case "INDY" 'indrectY
-			indaddr = readmem(cpu.pc)
+		Case "INDY" 'indirectY
+			indaddr = readmem(cpu.pc) 
 			taddr = readmem(indaddr,2)
-			taddr+=cpu.y
+			taddr+=cpu.y 
 			tdata = @cpu.memory(taddr)
 			cpu.pc+=1
 	End Select
-	opHistory(0) = opHistory(0) & " Addr: 0x" & Hex(taddr) & " Data:" & *tdata
+	/'=========================================================================
+	                             NOTICE
+	==========================================================================='/
+	Dim As String addrstr
+	Select Case taddr
+		Case 8192
+			addrstr = "PPUCTRL(0x2000)"
+		Case 8193
+			addrstr = "PPUMASK(0x2001)"
+		Case 8194
+			addrstr = "PPUSTATUS(0x2002)"
+		Case 8195
+			addrstr = "OAMADDR(0x2003)"
+		Case 8196
+		   addrstr = "OAMDATA(0x2004)"
+		Case 8197
+			addrstr = "PPUSCROLL(0x2005)"
+		Case 8198
+			addrstr = "PPUADDR(0x2006)"
+		Case 8199
+			addrstr = "PPUDATA(0x2007)"
+		Case 16404
+			addrstr = "OAMDMA(0x4014)"
+		Case Else
+			addrstr = "0x" & Hex(taddr)		
+	End Select
+	opHistory(0) = opHistory(0) & " Addr: " & addrstr & " Data:" & *tdata
 End Sub
 Sub INS_ADC
 	'add with carry

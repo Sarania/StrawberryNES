@@ -3,25 +3,22 @@ Declare function readPPUreg(ByVal addr As UShort) As ulongint
 Declare Function writePPUreg(ByVal addr As uShort, ByVal value As UByte) As ULongInt
 
 Function readPPUreg(ByVal addr As UShort)as ulongint
-	/'Select Case (addr) 
-		Case &h2002
-			value = 
-	End Select'/
+readPPUreg = cpu.memory(addr)
 End Function
 
 Function writePPUreg(ByVal addr As UShort, ByVal value As UByte) As ULongInt
 	Select Case(addr)
 	Case &h2000
-	ppu.PPUCTRL = value 
+	PPUCTRL = value 
 	Case &h2001
-	ppu.PPUMASK = value
+	PPUMASK = value
 	Case &h2003
 	ppu.sprAddr = value Or ((ppu.sprAddr And &hFF) Shl 8)
 	Case &h2004
 	ppu.sprRAM(ppu.sprAddr+1) = value
 	ppu.sprAddr Or= &hFF
 	Case &h2005
-	ppu.PPUSCROLL = value Or ((ppu.PPUSCROLL And &hFF) Shl 8)
+	PPUSCROLL = value Or ((PPUSCROLL And &hFF) Shl 8)
 	Case &h2006
 	ppu.vrAddr = value Or ((ppu.vrAddr And &hFF)Shl 8)
 	Case &h2007

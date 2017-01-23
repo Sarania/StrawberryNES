@@ -119,35 +119,8 @@ Type ppus
 	sprRAM (0 To &hFF) As UByte
 	vram(0 To &hFFFF) As ubyte
 	scanline As UInteger
-	PPUCTRL As UByte
-	PPUMASK As UByte
-	PPUSTATUS As UByte
-	OAMADDR As UByte
-	OAMDATA As UByte
-	PPUSCROLL As UByte
-	PPUADDR As UByte
-	PPUDATA As UByte
-	OAMDMA As UByte
 	sprAddr As UShort
 	vrAddr As UShort
-	#define  PPUCTRL_V        ( ppu.ppuctrl And 128 ) / 128
-	#Define  PPUCTRL_P        ( ppu.ppuctrl And 64 ) / 64
-	#Define  PPUCTRL_H        ( ppu.ppuctrl And 32 ) / 32
-	#Define  PPUCTRL_B        ( ppu.ppuctrl And 16 ) / 16
-	#Define  PPUCTRL_S        ( PPU.PPUCTRL And 8 ) / 8
-	#Define  PPUCTRL_I        ( PPU.PPUCTRL And 4 ) / 4
-	#Define  PPUCTRL_NN      (( PPU.PPUCTRL And 3 ) * &h400 ) + &h2000
-	#Define PPUMASK_INTENSIFY_B    ( PPU.PPUMASK And 128 ) / 128
-	#Define PPUMASK_INTENSIFY_G    ( PPU.PPUMASK And 64 ) / 64
-	#Define PPUMASK_INTENSIFY_R    ( PPU.PPUMASK And 32 ) / 32
-	#Define  PPUMASK_S       ( PPU.PPUMASK And 16 ) / 16
-	#Define  PPUMASK_B       ( PPU.PPUMASK And 8 ) / 8
-	#Define  PPUMASK_SL      ( PPU.PPUMASK And 4 ) / 4
-	#Define  PPUMASK_BL      ( PPU.PPUMASK And 2 ) / 2
-	#Define  PPUMASK_G       ( PPU.PPUMASK And 1 ) 
-	#Define  PPUSTATUS_V     ( PPU.PPUSTATUS And 128 ) / 128
-	#Define  PPUSTATUS_S     ( PPU.PPUSTATUS And 64 ) / 64
-	#Define  PPUSTATUS_O     ( PPU.PPUSTATUS And 32 ) / 32 
 End Type
 
 Type headers
@@ -169,6 +142,33 @@ ReDim Shared As UByte prgRAM(0 To 1)
 Dim Shared cpu As cpus '6502 CPU
 Dim Shared ppu As ppus 'suspicious PPU
 Dim Shared header As headers
+	#define PPUCTRL cpu.memory(&h2000)
+	#Define PPUMASK cpu.memory(&h2001)
+	#Define PPUSTATUS cpu.memory(&h2002)
+	#Define OAMADDR cpu.memory(&h2003)
+	#Define OAMDATA cpu.memory(&h2004)
+	#Define PPUSCROLL cpu.memory(&h2005)
+	#Define PPUADDR cpu.memory(&h2006)
+	#Define PPUDATA cpu.memory(&h2007)
+	#Define OAMDMA cpu.memory(&h4014)
+	#define  PPUCTRL_V        ( ppuctrl And 128 ) / 128
+	#Define  PPUCTRL_P        ( ppuctrl And 64 ) / 64
+	#Define  PPUCTRL_H        ( ppuctrl And 32 ) / 32
+	#Define  PPUCTRL_B        ( ppuctrl And 16 ) / 16
+	#Define  PPUCTRL_S        ( PPUCTRL And 8 ) / 8
+	#Define  PPUCTRL_I        ( PPUCTRL And 4 ) / 4
+	#Define  PPUCTRL_NN      (( PPUCTRL And 3 ) * &h400 ) + &h2000
+	#Define PPUMASK_INTENSIFY_B    ( PPUMASK And 128 ) / 128
+	#Define PPUMASK_INTENSIFY_G    ( PPUMASK And 64 ) / 64
+	#Define PPUMASK_INTENSIFY_R    ( PPUMASK And 32 ) / 32
+	#Define  PPUMASK_S       ( PPUMASK And 16 ) / 16
+	#Define  PPUMASK_B       ( PPUMASK And 8 ) / 8
+	#Define  PPUMASK_SL      ( PPUMASK And 4 ) / 4
+	#Define  PPUMASK_BL      ( PPUMASK And 2 ) / 2
+	#Define  PPUMASK_G       ( PPUMASK And 1 ) 
+	#Define  PPUSTATUS_V     ( PPUSTATUS And 128 ) / 128
+	#Define  PPUSTATUS_S     ( PPUSTATUS And 64 ) / 64
+	#Define  PPUSTATUS_O     ( PPUSTATUS And 32 ) / 32 
 #Include Once "inc/loadrom.bi"
 loadini ' need to load it here because of font stuff
 ChDir ExePath
@@ -266,13 +266,13 @@ Sub initcpu 'initialize CPU and RAM
 	set_b
 	set_u
 	cpu.PS = &h34 'init status
-	ppu.ppuctrl = 0 '00000000
-	ppu.ppumask = 0 '00000000
-	ppu.ppustatus = 160 '10100000
-	ppu.oamaddr = 0 '00000000
-	ppu.ppuscroll = 0 '00000000
-	ppu.ppuaddr = 0 '00000000
-	ppu.ppudata = 0 '00000000
+	ppuctrl = 0 '00000000
+	ppumask = 0 '00000000
+	ppustatus = 160 '10100000
+	oamaddr = 0 '00000000
+	ppuscroll = 0 '00000000
+	ppuaddr = 0 '00000000
+	ppudata = 0 '00000000
 End Sub
 
 Sub nmi
@@ -300,7 +300,7 @@ Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As ULon
 	Select Case addr
 		Case &h2000 To &h3FFF
 			If addr = &h2002 Then cpu.memory(&h2002) And= 127
-			readmem = readPPUreg(addr And &h2007)
+			readmem = cpu.memory(addr And &h2007)
 		Case &h4015
 			'apu stuff
 		Case &h4016
@@ -350,6 +350,7 @@ Sub loadini 'load the ini. Duh.
 End Sub
 
 Sub write_the_log
+Print #99, "Op number: " & totalops
 Print #99, ophistory(0)
 Print #99, "CPU.PC: " & cpu.pc & " (0x" & Hex(cpu.pc) & ") | " & "CPU.SP: " & cpu.sp & " (0x" & Hex(cpu.sp) & ") | " & "CPU.PS: " & cpu.ps & " (0x" & Hex(cpu.ps) & ")"
 Print #99, "CPU.ACC: " & cpu.acc & " (0x" & Hex(cpu.acc) & ") | " & "CPU.X: " & cpu.x & " (0x" & Hex(cpu.x) & ") | " & "CPU.Y: " & cpu.y & " (0x" & Hex(cpu.y) & ")"
@@ -357,6 +358,8 @@ Print #99, "-----------------"
 Print #99, "|N|V|-|B|D|I|Z|C|"
 Print #99, "|" & flag_S & "|" & flag_v & "|" & flag_u & "|" & flag_b & "|" & flag_d & "|" & flag_i & "|" & flag_z & "|" & flag_c & "|"
 Print #99, "-----------------"  
+Print #99, PPUSTATUS
+Print #99, Bin(ppustatus)
 Print #99, "----------------------------------------------------------------------------------------------------------------"
 End Sub
 
@@ -379,11 +382,9 @@ start = Timer
 If logops = 1 Then Open "log.txt" For Output As #99
 Do
 	opsPerSecond = totalops / (Timer-start)
-	cpu.memory(&hfe) = Rnd*255 ' random number generator for simple 6502 programs
 	'====================================REMOVE THIS======================================================
 	If totalops = 27000 Then cpu.memory(&h2002) = &h80 'Temporary tell the system that the PPU is warmed up
-
-
+   If emulatormode = "6502" Then cpu.memory(&hfe) = Rnd*255 ' random number generator for simple 6502 programs
 	'====================================REMOVE THIS======================================================
 	keycheck
 	cpu.oldpc = cpu.pc 'this is for storing debug information
@@ -559,9 +560,6 @@ Do
 		Sleep
 		CAE
 	EndIf
-
-
-
 	/'==============================================================================
                                        End sanity checks
 ================================================================================'/
