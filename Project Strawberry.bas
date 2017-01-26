@@ -58,7 +58,7 @@ Declare Sub loadini 'Load the ini file
 Declare Sub nmi
 Declare Sub Write_The_log
 Dim Shared As UByte debug
-Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=1
+Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=0
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
 Dim Shared As Single start, lastframetime,opsPerSecond, stepstart
 Dim Shared As Any Ptr strawberry
@@ -121,7 +121,7 @@ Type ppus
 	vram(0 To &hFFFF) As ubyte
 	scanline As UInteger = -1
 	sprAddr As UShort
-	vrAddr As UShort
+	vrAddr As Uinteger
 	addrLatch As UByte
 	curTile As UInteger
 	tableLine As UInteger
@@ -165,8 +165,8 @@ Dim Shared header As headers
 	#define  PPUCTRL_V        ( ppuctrl And 128 ) / 128
 	#Define  PPUCTRL_P        ( ppuctrl And 64 ) / 64
 	#Define  PPUCTRL_H        ( ppuctrl And 32 ) / 32
-	#Define  PPUCTRL_B        (( ppuctrl And 16 ) / 16) 
-	#Define  PPUCTRL_S        ( PPUCTRL And 8 ) / 8 * &h1000
+	#Define  PPUCTRL_B        (( ppuctrl And 16 ) / 16) * &h1000
+	#Define  PPUCTRL_S        ( PPUCTRL And 8 ) / 8 
 	#Define  PPUCTRL_I        (( PPUCTRL And 4 ) / 4)
 	#Define  PPUCTRL_NN      (( PPUCTRL And 3 ) * &h400 ) + &h2000
 	#Define PPUMASK_INTENSIFY_B    ( PPUMASK And 128 ) / 128
@@ -228,7 +228,7 @@ Sub status
 	ImageDestroy(blackout)
 	font.set_size 10
 	'fprint 1,15, "Emulator mode: " & emulatorMode
-	fprint 1,15, Hex(PPUCTRL_I)
+	fprint 1,15, Hex(ppuCTRL_B)
 	fprint 1,25, "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
 	fprint 1,35, "Total ops: " & totalops & " | Stepping by: " & opstoskip & "                     "
 	fprint 1,45, "Ops per second: " &  opsPerSecond & "                         "

@@ -25,17 +25,18 @@ Function writePPUreg(ByVal addr As UShort, ByVal value As UByte) As ULongInt
 			Else
 				ppu.addrLatch = 0
 				ppu.vrAddr Or = value
-				ppu.vrAddr And= &h4000
+				ppu.vrAddr And= &h3FFF
 			endif
 		Case &h2007
-			ppu.vram(ppu.vrAddr) = value
-			If PPUCTRL_I = 1 Then
-				ppu.vrAddr += 32
-			Else ppu.vrAddr += 1
-			EndIf
+				ppu.vram(ppu.vrAddr) = value
+				If PPUCTRL_I = 1 Then
+					ppu.vrAddr += 32
+				Else ppu.vrAddr += 1
+				EndIf
+			ppu.vrAddr And= &h3FFF
 	End Select
 End Function
-Function readPPUreg(ByVal addr As UShort)as ULongInt
+Function readPPUreg(ByVal addr As UShort)As ULongInt
 	Dim As UByte value
 	Select Case addr
 		Case &h2002
@@ -55,17 +56,17 @@ End Function
 
 Sub ProcessCurTile
 	Dim As UInteger pixel
-	'Dim As UInteger palette_address = &h3f00 + (ppu.curAttrb * 4)
-   'dim as uinteger pPalette = cpu.memory(&h3f00) + (cpu.memory(palette_address) Shl 8) + (cpu.memory(palette_address+1) Shl 16) + (cpu.memory(palette_address+2) Shl 24)  
+	Dim As UInteger palette_address = &h3f00 + (ppu.curAttrb * 4)
+	dim as uinteger pPalette = ppu.vram(&h3f00) + (ppu.vram(palette_address) Shl 8) + (ppu.vram(palette_address+1) Shl 16) + (ppu.vram(palette_address+2) Shl 24)
 	For zz As Integer = 0 To 7
 		pixel =((ppu.lbit Shr 7) and &h1) + ((ppu.ubit Shr 7) and &h1) Shl 1
 		If pixel Then PSet framebuffer, (ppu.curx,ppu.cury), RGB(255,255,255)
-		ppu.curx-=1
+		ppu.curx+=1
 		ppu.lbit Shl = 1
 		ppu.ubit Shl = 1
-		If ppu.curx = 0 Then
+		If ppu.curx = 256 Then
 			ppu.cury+=1
-			ppu.curx=256
+			ppu.curx=0
 		EndIf
 	Next
 End Sub
@@ -73,13 +74,14 @@ End Sub
 Sub ppuLoop
 	Select Case ppu.scanline
 		Case -1 'prerender scanline
-			framebuffer=ImageCreate(256,240,RGB(0,50,0))
+			framebuffer=ImageCreate(256,240,RGB(0,0,0))
 		Case 0 To 239 'proper scanline
 			ppu.tableLine = PPUCTRL_NN + ((ppu.scanline \ 8) * 32)
 			ppu.attrbLine = PPUCTRL_NN + &h3C0 + ((ppu.scanline \ 32) * 8)
 			For z As UByte = 0 To 31
 				ppu.curAttrb = ppu.attrbLine + (z \ 4)
 				ppu.curtile = ppu.tableLine+z
+
 				If Not (ppu.scanline\16) And 1 Then
 					If (z\2) And 1 Then
 						ppu.palette = (ppu.curAttrb Shr 2) And &h3
@@ -93,8 +95,16 @@ Sub ppuLoop
 						ppu.palette=(ppu.curAttrb Shr 4) And &h3
 					EndIf
 				End If
-				ppu.lbit = cpu.memory(PPUCTRL_S + (ppu.curTile * 16) + (ppu.scanline and &h7))
-				ppu.ubit = cpu.memory(PPUCTRL_S + (ppu.CurTile * 16) + (ppu.scanline and &h7) + 8)
+				ppu.lbit = ppu.vram(((PPUCTRL_B + (ppu.curTile * 16) + (ppu.scanline and &h7))/&h10))
+				ppu.ubit = ppu.vram(((PPUCTRL_B + (ppu.CurTile * 16) + (ppu.scanline and &h7) + 8)/&h10))
+				'Cls
+				'Print "PPU.scanline: 0x" & Hex(ppu.scanline)
+				'Print "PPU.tableline: 0x" & Hex(ppu.tableLine)
+				'Print "PPU.attrbline: 0x" & hex(ppu.attrbline)
+				'Print "PPU.curattrb: 0x" & Hex(ppu.curAttrb)
+				'Print "PPU.curtile: 0x" & Hex(ppu.curtile)
+				'Print "PPUCTRL_B: 0x"& Hex(ppuCTRL_B)
+				'Sleep
 				ProcessCurTile
 			Next
 		Case 240 'post render scanline
@@ -102,7 +112,7 @@ Sub ppuLoop
 			ImageDestroy(framebuffer)
 		Case Else 'vblank period
 			'stuff
-			ppu.curx=256
+			ppu.curx=0
 			ppu.cury=0
 	End Select
 	If ppu.scanline > 240 Then
