@@ -9,14 +9,14 @@ Declare Function writePPUreg(ByVal addr As uShort, ByVal value As UByte) As ULon
 Declare Sub FetchBackgroundTile(ByVal Ypos As UInteger, ByVal Xpos As uinteger)
 
 Sub fetchScanline
-	Dim As Byte Tile
-	Dim As UShort tilesDrawn
-	Dim As UShort BaseNameTableAddress=&h2000 + (PPUCTRL_NN * &h400)
-	For i As Integer = 0 To 7
-	Tile = ppu.vram(BaseNameTableAddress + tilesDrawn)
-	frameBuffer((tilesDrawn*8)+i,i) = (ppu.vram(Tile*16)Shr (7-i) And 1)
-	frameBuffer((tilesDrawn*8)+i,i) = ((ppu.vram((Tile*16)+8) Shr (7-i) And 1)Shl 1)
-	Next
+	'Dim As Byte Tile
+	'Dim As UShort tilesDrawn
+	'Dim As UShort BaseNameTableAddress=&h2000 + (PPUCTRL_NN * &h400)
+	''For i As Integer = 0 To 7
+	'Tile = ppu.vram(BaseNameTableAddress + tilesDrawn)
+	'frameBuffer((tilesDrawn*8)+i,i) = (ppu.vram(Tile*16)Shr (7-i) And 1)
+	'frameBuffer((tilesDrawn*8)+i,i) = ((ppu.vram((Tile*16)+8) Shr (7-i) And 1)Shl 1)
+'	Next
 End Sub
 Function writePPUreg(ByVal addr As UShort, ByVal value As UByte) As ULongInt
 
@@ -77,7 +77,7 @@ Sub ppuLoop
 	
 '	fetchScanline
 For i As Integer = 0 To 7
-	frameBuffer(i,ppu.scanline) = clr(rom(&h8010+ppu.scanline) Shr (7-i)And 1) 'Or (clr(rom(&h8018+ppu.scanline) Shr (7-i)And 1)Shl 1)
+	'frameBuffer(i,ppu.scanline) = clr(rom(&h8010+ppu.scanline) Shr (7-i)And 1) 'Or (clr(rom(&h8018+ppu.scanline) Shr (7-i)And 1)Shl 1)
 	'frameBuffer(i,ppu.scanline) or= (clr(rom(&h8018+ppu.scanline) Shr (7-i)And 1)Shl 1)
 Next
 	If ppu.scanline > 240 Then

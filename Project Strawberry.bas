@@ -121,6 +121,7 @@ Type ppus
 	scanline As UInteger
 	sprAddr As UShort
 	vrAddr As UShort
+	addrLatch As Ubyte
 End Type
 
 Type headers
@@ -358,8 +359,6 @@ Print #99, "-----------------"
 Print #99, "|N|V|-|B|D|I|Z|C|"
 Print #99, "|" & flag_S & "|" & flag_v & "|" & flag_u & "|" & flag_b & "|" & flag_d & "|" & flag_i & "|" & flag_z & "|" & flag_c & "|"
 Print #99, "-----------------"  
-Print #99, PPUSTATUS
-Print #99, Bin(ppustatus)
 Print #99, "----------------------------------------------------------------------------------------------------------------"
 End Sub
 
@@ -388,131 +387,9 @@ Do
 	'====================================REMOVE THIS======================================================
 	keycheck
 	cpu.oldpc = cpu.pc 'this is for storing debug information
-	decode(cpu.memory(cpu.pc)) ' decode the binary located at the PC to opcode and address mode
 	cpu.pc+=1
 	totalops+=1
-	Select Case instruction
-		Case "ADC"
-			INS_ADC
-		Case "AND"
-			INS_AND
-		Case "ASL"
-			INS_ASL
-		Case "BCC"
-			INS_BCC
-		Case "BCS"
-			INS_BCS
-		Case "BEQ"
-			INS_BEQ
-		Case "BIT"
-			INS_BIT
-		Case "BMI"
-			INS_BMI
-		Case "BNE"
-			INS_BNE
-		Case "BPL"
-			INS_BPL
-		Case "BRK"
-			INS_BRK
-		Case "BVC"
-			INS_BVC
-		Case "BVS"
-			INS_BVS
-		Case "CLC"
-			INS_CLC
-		Case "CLD"
-			INS_CLD
-		Case "CLI"
-			INS_CLI
-		Case "CLV"
-			INS_CLV
-		Case "CMP"
-			INS_CMP
-		Case "CPX"
-			INS_CPX
-		Case "CPY"
-			INS_CPY
-		Case "DEC"
-			INS_DEC
-		Case "DEX"
-			INS_DEX
-		Case "DEY"
-			INS_DEY
-		Case "EOR"
-			INS_EOR
-		Case "INC"
-			INS_INC
-		Case "INX"
-			INS_INX
-		Case "INY"
-			INS_INY
-		Case "JMP"
-			INS_JMP
-		Case "JSR"
-			INS_JSR
-		Case "LDA"
-			INS_LDA
-		Case "LDX"
-			INS_LDX
-		Case "LDY"
-			INS_LDY
-		Case "LSR"
-			INS_LSR
-		Case "NOP"
-			INS_NOP
-		Case "ORA"
-			INS_ORA
-		Case "PHA"
-			INS_PHA
-		Case "PHP"
-			INS_PHP
-		Case "PLA"
-			INS_PLA
-		Case "PLP"
-			INS_PLP
-		Case "ROL"
-			INS_ROL
-		Case "ROR"
-			INS_ROR
-		Case "RTI"
-			INS_RTI
-		Case "RTS"
-			INS_RTS
-		Case "SBC"
-			INS_SBC
-		Case "SEC"
-			INS_SEC
-		Case "SED"
-			INS_SED
-		Case "SEI"
-			INS_SEI
-		Case "STA"
-			INS_STA
-		Case "STX"
-			INS_STX
-		Case "STY"
-			INS_STY
-		Case "TAX"
-			INS_TAX
-		Case "TAY"
-			INS_TAY
-		Case "TSX"
-			INS_TSX
-		Case "TXA"
-			INS_TXA
-		Case "TXS"
-			INS_TXS
-		Case "TYA"
-			INS_TYA
-		Case Else
-			status
-			Print "Decoder broken somehow. It received " & instruction
-			Do
-				Sleep 10
-			Loop While InKey$ = ""
-			Sleep
-	End Select
-	
+	decode_and_execute(cpu.memory(cpu.pc-1)) ' decode the binary located at the PC to opcode and address mode and then execute the instruction
 	If ticks >=85 Then ppuLoop
 	If ticks >=85 Then ticks = 0
 	nextskip-=1
