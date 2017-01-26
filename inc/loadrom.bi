@@ -80,15 +80,13 @@ Sub loadROM
 			For i As Integer = 0 To (header.prgSize*16*1024)-1
 				cpu.memory(49152+i) = prgRom(i)
 			Next
-		If header.chrSize*8*1024 = 8092 Then
+		End if
+		If header.chrSize*8*1024 = 8192 Then
 			For i as Integer = 0 To (header.chrSize*8*1024)-1
 				ppu.VRAM(i) = chrRom(i)
 			Next
 		EndIf
-		EndIf
 		set_i
-		cpu.pc = (cpu.memory(&hFFFD) Shl 8) Or cpu.memory(&hFFFC)
-	
-	
+		cpu.pc = (cpu.memory(&hFFFD) Shl 8) Or cpu.memory(&hFFFC)	
 	End if
 End Sub

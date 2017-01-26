@@ -25,7 +25,7 @@ Sub keycheck
 	If MultiKey(SC_PAGEUP) Then
 		If debug = 1 Then debug = 0 Else debug = 1
 		nextskip = opstoskip
-	While MultiKey(SC_PAGEUP):Sleep 10: wend
+		While MultiKey(SC_PAGEUP):Sleep 10: wend
 	EndIf
 	If MultiKey(SC_w) Then
 		cpu.memory(&hff) = Asc("w")
@@ -65,6 +65,20 @@ Sub keycheck
 		Wend
 	End If
 
+	If MultiKey(SC_f12)Then  'dump memory
+		Dim As Integer f = FreeFile
+		If fileexists("VRAMdump.mem") Then Kill ("VRAMdump.mem")
+		Open "VRAMdump.mem" For Binary As #f
+		Put #f, 1, ppu.vram()
+		Close #f
+		Print "VRAM dumped to VRAMdump.mem"
+		Beep
+		Sleep 1000,1
+		While MultiKey(SC_F12)
+			'nothing
+		Wend
+	End If
+
 	If MultiKey(SC_f1)Then  'save state
 		'savestate
 		While MultiKey(SC_F1)
@@ -92,24 +106,24 @@ End Sub
 
 Sub simplegraphics
 	If emulatormode = "6502" Then
-	'Simple graphics renderer. As with keycheck, this is only useful for the "simple" 6502 machine. The graphics are memory mapped.
-	Dim As integer	memcount = -1, sf = 8
-	Dim As fb.image Ptr simplebuff
-	simplebuff = ImageCreate(32*sf,32*sf,RGB(0,0,0))
-	For dy As Integer = 1 To 32
-		For dx As Integer = 1 To 32
-			memcount+=1
-			If memcount + &h200 > 1535 Then
-				Exit for
-			EndIf
-			For z As Integer = sf To 1 Step -1
-				' Draw a line z number of times to make a giant pixel. This is how we are scaling
-				Line simplebuff, (dx*sf-sf,dy*sf-z)-(dx*sf,dy*sf-z), clr(cpu.memory(&h200 + memcount)And &hf)
+		'Simple graphics renderer. As with keycheck, this is only useful for the "simple" 6502 machine. The graphics are memory mapped.
+		Dim As integer	memcount = -1, sf = 8
+		Dim As fb.image Ptr simplebuff
+		simplebuff = ImageCreate(32*sf,32*sf,RGB(0,0,0))
+		For dy As Integer = 1 To 32
+			For dx As Integer = 1 To 32
+				memcount+=1
+				If memcount + &h200 > 1535 Then
+					Exit for
+				EndIf
+				For z As Integer = sf To 1 Step -1
+					' Draw a line z number of times to make a giant pixel. This is how we are scaling
+					Line simplebuff, (dx*sf-sf,dy*sf-z)-(dx*sf,dy*sf-z), clr(cpu.memory(&h200 + memcount)And &hf)
+				Next
 			Next
-		Next
-	next
-	Line simplebuff, (0, 0)-(32*sf-1, 32*sf-1), RGB(255,255,255), b ' draw the box around the graphic area
-	Put (screenx-(32*sf)-25,screeny-(32*sf)-25), simplebuff, PSet
-	ImageDestroy(simplebuff) ' Get rid of the buffer, or else memory leaks
-	End if
+		next
+		Line simplebuff, (0, 0)-(32*sf-1, 32*sf-1), RGB(255,255,255), b ' draw the box around the graphic area
+		Put (screenx-(32*sf)-25,screeny-(32*sf)-25), simplebuff, PSet
+		ImageDestroy(simplebuff) ' Get rid of the buffer, or else memory leaks
+	end If
 End Sub

@@ -55,13 +55,17 @@ End Function
 
 Sub ProcessCurTile
 	Dim As UInteger pixel
+	'Dim As UInteger palette_address = &h3f00 + (ppu.curAttrb * 4)
+   'dim as uinteger pPalette = cpu.memory(&h3f00) + (cpu.memory(palette_address) Shl 8) + (cpu.memory(palette_address+1) Shl 16) + (cpu.memory(palette_address+2) Shl 24)  
 	For zz As Integer = 0 To 7
 		pixel =((ppu.lbit Shr 7) and &h1) + ((ppu.ubit Shr 7) and &h1) Shl 1
 		If pixel Then PSet framebuffer, (ppu.curx,ppu.cury), RGB(255,255,255)
-		ppu.curx+=1
-		If ppu.curx = 256 Then
+		ppu.curx-=1
+		ppu.lbit Shl = 1
+		ppu.ubit Shl = 1
+		If ppu.curx = 0 Then
 			ppu.cury+=1
-			ppu.curx=0
+			ppu.curx=256
 		EndIf
 	Next
 End Sub
@@ -69,36 +73,36 @@ End Sub
 Sub ppuLoop
 	Select Case ppu.scanline
 		Case -1 'prerender scanline
-			framebuffer=ImageCreate(256,240,RGB(0,100,0))
+			framebuffer=ImageCreate(256,240,RGB(0,50,0))
 		Case 0 To 239 'proper scanline
-			ppu.tableLine = PPUCTRL_NN + ((ppu.scanline / 8) * 32)
-			ppu.attrbLine = PPUCTRL_NN + &h3C0 + ((ppu.scanline / 32) * 8)
+			ppu.tableLine = PPUCTRL_NN + ((ppu.scanline \ 8) * 32)
+			ppu.attrbLine = PPUCTRL_NN + &h3C0 + ((ppu.scanline \ 32) * 8)
 			For z As UByte = 0 To 31
-				ppu.curAttrb = ppu.attrbLine + (z / 4)
+				ppu.curAttrb = ppu.attrbLine + (z \ 4)
 				ppu.curtile = ppu.tableLine+z
-				If Not (ppu.scanline/16) And 1 Then
-					If (z/2) And 1 Then
+				If Not (ppu.scanline\16) And 1 Then
+					If (z\2) And 1 Then
 						ppu.palette = (ppu.curAttrb Shr 2) And &h3
 					Else
 						ppu.palette = ppu.curAttrb And &h3
 					EndIf
 				Else
-					If(z/2) And 1 Then
+					If(z\2) And 1 Then
 						ppu.palette=(ppu.curAttrb Shr 6) And &h3
 					Else
 						ppu.palette=(ppu.curAttrb Shr 4) And &h3
 					EndIf
 				End If
-				ppu.lbit = PPUCTRL_I + (ppu.curTile * 16) + (ppu.scanline and &h7)
-				ppu.ubit = PPUCTRL_I + (ppu.CurTile * 16) + (ppu.scanline and &h7) + 8
-				processCurTile
+				ppu.lbit = cpu.memory(PPUCTRL_S + (ppu.curTile * 16) + (ppu.scanline and &h7))
+				ppu.ubit = cpu.memory(PPUCTRL_S + (ppu.CurTile * 16) + (ppu.scanline and &h7) + 8)
+				ProcessCurTile
 			Next
 		Case 240 'post render scanline
 			Put(screenx-256,screeny-240),framebuffer,PSet
 			ImageDestroy(framebuffer)
 		Case Else 'vblank period
 			'stuff
-			ppu.curx=0
+			ppu.curx=256
 			ppu.cury=0
 	End Select
 	If ppu.scanline > 240 Then

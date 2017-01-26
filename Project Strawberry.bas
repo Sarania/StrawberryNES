@@ -165,9 +165,9 @@ Dim Shared header As headers
 	#define  PPUCTRL_V        ( ppuctrl And 128 ) / 128
 	#Define  PPUCTRL_P        ( ppuctrl And 64 ) / 64
 	#Define  PPUCTRL_H        ( ppuctrl And 32 ) / 32
-	#Define  PPUCTRL_B        ( ppuctrl And 16 ) / 16
-	#Define  PPUCTRL_S        ( PPUCTRL And 8 ) / 8
-	#Define  PPUCTRL_I        (( PPUCTRL And 4 ) / 4) *&h1000
+	#Define  PPUCTRL_B        (( ppuctrl And 16 ) / 16) 
+	#Define  PPUCTRL_S        ( PPUCTRL And 8 ) / 8 * &h1000
+	#Define  PPUCTRL_I        (( PPUCTRL And 4 ) / 4)
 	#Define  PPUCTRL_NN      (( PPUCTRL And 3 ) * &h400 ) + &h2000
 	#Define PPUMASK_INTENSIFY_B    ( PPUMASK And 128 ) / 128
 	#Define PPUMASK_INTENSIFY_G    ( PPUMASK And 64 ) / 64
