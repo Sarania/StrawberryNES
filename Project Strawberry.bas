@@ -63,7 +63,8 @@ Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg,
 Dim Shared As Single start, lastframetime,opsPerSecond, stepstart
 Dim Shared As Any Ptr strawberry
 Dim Shared As UInteger status_timer
-
+Dim Shared As Any Ptr framebuffer
+Dim Shared As uinteger masterPalette(64) = {&hff545454, &hFF001E74, &hFF081090, &hFF300088, &hFF440064, &hFF5C0030, &hFF540400, &hFF3C1800, &hFF202A00, &hFF083A00, &hFF004000, &hFF003C00, &hFF00323C, &hFF000000, &hFF000000, &hFF000000, &hFF989698, &hFF084CC4, &hFF3032EC, &hFF5C1EE4, &hFF8814B0, &hFFA01464, &hFF982220, &hFF783C00, &hFF545A00, &hFF287200, &hFF087C00, &hFF007628, &hFF006678, &hFF000000, &hFF000000, &hFF000000, &hFFECEEEC, &hFF4C9AEC, &hFF787CEC, &hFFB062EC, &hFFE454EC, &hFFEC58B4, &hFFEC6A64, &hFFD48820, &hFFA0AA00, &hFF74C400, &hFF4CD020, &hFF38CC6C, &hFF38B4CC, &hFF3C3C3C, &hFF000000, &hFF000000, &hFFECEEEC, &hFFA8CCEC, &hFFBCBCEC, &hFFD4B2EC, &hFFECAEEC, &hFFECAED4, &hFFECB4B0, &hFFE4C490, &hFFCCD278, &hFFB4DE78, &hFFA8E290, &hFF98E2B4, &hFFA0D6E4, &hFFA0A2A0, &hFF000000, &hFF000000}
 
 
 
@@ -118,10 +119,19 @@ End Type
 Type ppus
 	sprRAM (0 To &hFF) As UByte
 	vram(0 To &hFFFF) As ubyte
-	scanline As UInteger
+	scanline As UInteger = -1
 	sprAddr As UShort
 	vrAddr As UShort
-	addrLatch As Ubyte
+	addrLatch As UByte
+	curTile As UInteger
+	tableLine As UInteger
+	attrbLine As UInteger
+	curAttrb As UInteger
+	Palette As UInteger
+	ubit As UInteger
+	lbit As UInteger
+	curx As UInteger 
+	cury As uinteger
 End Type
 
 Type headers
@@ -157,7 +167,7 @@ Dim Shared header As headers
 	#Define  PPUCTRL_H        ( ppuctrl And 32 ) / 32
 	#Define  PPUCTRL_B        ( ppuctrl And 16 ) / 16
 	#Define  PPUCTRL_S        ( PPUCTRL And 8 ) / 8
-	#Define  PPUCTRL_I        ( PPUCTRL And 4 ) / 4
+	#Define  PPUCTRL_I        (( PPUCTRL And 4 ) / 4) *&h1000
 	#Define  PPUCTRL_NN      (( PPUCTRL And 3 ) * &h400 ) + &h2000
 	#Define PPUMASK_INTENSIFY_B    ( PPUMASK And 128 ) / 128
 	#Define PPUMASK_INTENSIFY_G    ( PPUMASK And 64 ) / 64
@@ -217,7 +227,8 @@ Sub status
 	Put (1,1),blackout,PSet
 	ImageDestroy(blackout)
 	font.set_size 10
-	fprint 1,15, "Emulator mode: " & emulatorMode
+	'fprint 1,15, "Emulator mode: " & emulatorMode
+	fprint 1,15, Hex(PPUCTRL_I)
 	fprint 1,25, "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
 	fprint 1,35, "Total ops: " & totalops & " | Stepping by: " & opstoskip & "                     "
 	fprint 1,45, "Ops per second: " &  opsPerSecond & "                         "

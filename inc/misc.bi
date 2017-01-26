@@ -91,6 +91,7 @@ End Sub
 
 
 Sub simplegraphics
+	If emulatormode = "6502" Then
 	'Simple graphics renderer. As with keycheck, this is only useful for the "simple" 6502 machine. The graphics are memory mapped.
 	Dim As integer	memcount = -1, sf = 8
 	Dim As fb.image Ptr simplebuff
@@ -109,5 +110,6 @@ Sub simplegraphics
 	next
 	Line simplebuff, (0, 0)-(32*sf-1, 32*sf-1), RGB(255,255,255), b ' draw the box around the graphic area
 	Put (screenx-(32*sf)-25,screeny-(32*sf)-25), simplebuff, PSet
-	ImageDestroy(simplebuff) ' Get rid of the buffer, or else memory leaks!
+	ImageDestroy(simplebuff) ' Get rid of the buffer, or else memory leaks
+	End if
 End Sub

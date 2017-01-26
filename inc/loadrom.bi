@@ -82,7 +82,7 @@ Sub loadROM
 			Next
 		If header.chrSize*8*1024 = 8092 Then
 			For i as Integer = 0 To (header.chrSize*8*1024)-1
-'				cpu.VRAM(i) = chrRom(i)
+				ppu.VRAM(i) = chrRom(i)
 			Next
 		EndIf
 		EndIf
