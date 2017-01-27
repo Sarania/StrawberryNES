@@ -107,6 +107,7 @@ Sub ppuLoop
 		Case 240 'post render scanline
 			Put(screenx-512,screeny-480),framebuffer,PSet
 			ImageDestroy(framebuffer)
+			screencopy
 		Case Else 'vblank period
 			'stuff
 			ppu.curx=0

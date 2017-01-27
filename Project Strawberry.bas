@@ -251,9 +251,10 @@ Sub status
 	Next
 	font.set_size 18
 	fprint(2, screeny-55, "StrawberryNES",RGB(255,0,0))
-	fprint(2, screeny-40, "Version 0.40 alpha ")
+	fprint(2, screeny-40, "Version " & version)
 	fprint(2, screeny-25, "By Blyss Sarania and Nobbs66")
 	Put(screenx-70,6),strawberry, Alpha
+	screencopy
 End Sub
 
 Sub fprint(ByVal x As Integer, ByVal y As Integer, ByVal text As String, ByVal c As Integer = RGB(255,255,255)) 'print to screen with font
@@ -310,7 +311,7 @@ Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As ULon
 	Select Case addr
 		Case &h2000 To &h3FFF
 			If addr = &h2002 Then cpu.memory(&h2002) And= 127
-			readmem = cpu.memory(addr And &h2007)
+			readmem = readPPUreg(addr And &h2007)
 		Case &h4015
 			'apu stuff
 		Case &h4016
@@ -381,7 +382,8 @@ End Sub
 /'==============================================================================
                                        End subroutines
 ================================================================================'/
-ScreenRes screenx,screeny,32
+ScreenRes screenx,screeny,32,2
+ScreenSet 1,0
 strawberry = freeimage_load_fb(CurDir & "/Res/strawberry.png", TRUE) ' load cute strawberry :)
 initcpu
 loadROM ' loadfile into ROM and cpu memory
@@ -400,8 +402,10 @@ Do
 	cpu.pc+=1
 	totalops+=1
 	decode_and_execute(cpu.memory(cpu.pc-1)) ' decode the binary located at the PC to opcode and address mode and then execute the instruction
-	If ticks >=85 Then ppuLoop
-	If ticks >=85 Then ticks = 0
+	If ticks >=85 And emulatorMode <> "6502" Then
+		ppuLoop
+		ticks = 0
+	EndIf
 	nextskip-=1
 	If debug = 1 And nextskip = 0 Then
 		stepstart = Timer
