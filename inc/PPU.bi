@@ -55,12 +55,15 @@ Function readPPUreg(ByVal addr As UShort)As ULongInt
 End Function
 
 Sub ProcessCurTile
-	Dim As Ubyte pixel
-	Dim As UInteger palette_address = &h3f01 + (ppu.palette * 4)
-	Dim as uinteger pPalette = ppu.vram(&h3f00) + (ppu.vram(palette_address) Shl 8) + (ppu.vram(palette_address+1) Shl 16) + (ppu.vram(palette_address+2) Shl 24)
+Dim As Ubyte pixel
+Dim As UInteger palette_address = &h3f01 + (ppu.palette * 4)
+Dim as uinteger pPalette = ppu.vram(&h3f00) + (ppu.vram(palette_address) Shl 8) + (ppu.vram(palette_address+1) Shl 16) + (ppu.vram(palette_address+2) Shl 24)
 For zz As Integer = 0 To 7
 pixel =((ppu.lbit Shr 7) and &h1) + (((ppu.ubit Shr 7) and &h1) Shl 1)
-PSet framebuffer, (ppu.curx,ppu.cury), masterpalette((pPalette Shr (pixel * 8) AND &hff))
+'PSet framebuffer, (ppu.curx,ppu.cury), masterpalette((pPalette Shr (pixel * 8) AND &hff))
+'PSet framebuffer, (ppu.curx,ppu.cury), masterpalette((pPalette Shr (pixel * 8) AND &hff))
+Line framebuffer, ((ppu.curx*2)-2,(ppu.cury*2)-1)-((ppu.curx*2),(ppu.cury*2)-1), masterpalette((pPalette Shr (pixel * 8) AND &hff))
+Line framebuffer, ((ppu.curx*2)-2,(ppu.cury*2)-2)-((ppu.curx*2),(ppu.cury*2)-2), masterpalette((pPalette Shr (pixel * 8) AND &hff))
 ppu.curx+=1
 ppu.lbit Shl = 1
 ppu.ubit Shl = 1
@@ -75,7 +78,7 @@ Sub ppuLoop
 	Select Case ppu.scanline
 		Case -1 'prerender scanline
 			PPUSTATUS And= &h7F
-			framebuffer=ImageCreate(256,240,RGB(0,0,0))
+			framebuffer=ImageCreate(512,480,RGB(0,0,0))
 		Case 0 To 239 'proper scanline
 			Dim temp_P As UInteger
 			ppu.tableLine = PPUCTRL_NN + ((ppu.scanline \ 8) * 32)
@@ -102,7 +105,7 @@ Sub ppuLoop
 				ProcessCurTile
 			Next
 		Case 240 'post render scanline
-			Put(screenx-256,screeny-240),framebuffer,PSet
+			Put(screenx-512,screeny-480),framebuffer,PSet
 			ImageDestroy(framebuffer)
 		Case Else 'vblank period
 			'stuff

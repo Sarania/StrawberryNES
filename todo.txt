@@ -1,0 +1,4 @@
+Implement full ines header reading
+Redo UI on a buffer(with fullscreen scaling for PPU output)
+Implement input
+A B Sel Start Up Down Left Right
