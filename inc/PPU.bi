@@ -61,7 +61,6 @@ Dim as uinteger pPalette = ppu.vram(&h3f00) + (ppu.vram(palette_address) Shl 8) 
 For zz As Integer = 0 To 7
 pixel =((ppu.lbit Shr 7) and &h1) + (((ppu.ubit Shr 7) and &h1) Shl 1)
 'PSet framebuffer, (ppu.curx,ppu.cury), masterpalette((pPalette Shr (pixel * 8) AND &hff))
-'PSet framebuffer, (ppu.curx,ppu.cury), masterpalette((pPalette Shr (pixel * 8) AND &hff))
 Line framebuffer, ((ppu.curx*2)-2,(ppu.cury*2)-1)-((ppu.curx*2),(ppu.cury*2)-1), masterpalette((pPalette Shr (pixel * 8) AND &hff))
 Line framebuffer, ((ppu.curx*2)-2,(ppu.cury*2)-2)-((ppu.curx*2),(ppu.cury*2)-2), masterpalette((pPalette Shr (pixel * 8) AND &hff))
 ppu.curx+=1
@@ -107,7 +106,9 @@ Sub ppuLoop
 		Case 240 'post render scanline
 			Put(screenx-512,screeny-480),framebuffer,PSet
 			ImageDestroy(framebuffer)
-			screencopy
+			ScreenCopy
+		Case 241 To 248
+          'dsfsdfs
 		Case Else 'vblank period
 			'stuff
 			ppu.curx=0

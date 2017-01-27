@@ -57,7 +57,7 @@ Declare Sub CAE 'Cleanup and exit
 Declare Sub loadini 'Load the ini file
 Declare Sub nmi
 Declare Sub write_the_log
-Dim Shared As UByte debug
+Dim Shared As UByte debug, trace_done = 0
 Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=0
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
 Dim Shared As Single start, lastframetime,opsPerSecond, stepstart
@@ -65,7 +65,8 @@ Dim Shared As Any Ptr strawberry
 Dim Shared As UInteger status_timer
 Dim Shared As Any Ptr framebuffer
 Dim Shared As uinteger masterPalette(64) = {&h545454, &h001E74, &h081090, &h300088, &h440064, &h5C0030, &h540400, &h3C1800, &h202A00, &h083A00, &h004000, &h003C00, &h00323C, &h000000, &h000000, &h000000, &h989698, &h084CC4, &h3032EC, &h5C1EE4, &h8814B0, &hA01464, &h982220, &h783C00, &h545A00, &h287200, &h087C00, &h007628, &h006678, &h000000, &h000000, &h000000, &hECEEEC, &h4C9AEC, &h787CEC, &hB062EC, &hE454EC, &hEC58B4, &hEC6A64, &hD48820, &hA0AA00, &h74C400, &h4CD020, &h38CC6C, &h38B4CC, &h3C3C3C, &h000000, &h000000, &hECEEEC, &hA8CCEC, &hBCBCEC, &hD4B2EC, &hECAEEC, &hECAED4, &hECB4B0, &hE4C490, &hCCD278, &hB4DE78, &hA8E290, &h98E2B4, &hA0D6E4, &hA0A2A0, &h000000, &h000000}
-
+Dim Shared As UByte button_counter
+Dim Shared As UByte button(0 To 7)
 Type cpus
 	'------------------------'
 	'   6502 Registers/MEM   '
@@ -128,7 +129,7 @@ Type ppus
 	Palette As UInteger
 	ubit As UByte
 	lbit As Ubyte
-	curx As UInteger 
+	curx As UInteger
 	cury As uinteger
 End Type
 
@@ -151,33 +152,33 @@ ReDim Shared As UByte prgRAM(0 To 1)
 Dim Shared cpu As cpus '6502 CPU
 Dim Shared ppu As ppus 'slightly less suspicious PPU
 Dim Shared header As headers
-	#define PPUCTRL cpu.memory(&h2000)
-	#Define PPUMASK cpu.memory(&h2001)
-	#Define PPUSTATUS cpu.memory(&h2002)
-	#Define OAMADDR cpu.memory(&h2003)
-	#Define OAMDATA cpu.memory(&h2004)
-	#Define PPUSCROLL cpu.memory(&h2005)
-	#Define PPUADDR cpu.memory(&h2006)
-	#Define PPUDATA cpu.memory(&h2007)
-	#Define OAMDMA cpu.memory(&h4014)
-	#define  PPUCTRL_V        ( ppuctrl And 128 ) / 128
-	#Define  PPUCTRL_P        ( ppuctrl And 64 ) / 64
-	#Define  PPUCTRL_H        ( ppuctrl And 32 ) / 32
-	#Define  PPUCTRL_B        (( ppuctrl And 16 ) / 16) * &h1000
-	#Define  PPUCTRL_S        ( PPUCTRL And 8 ) / 8 
-	#Define  PPUCTRL_I        (( PPUCTRL And 4 ) / 4)
-	#Define  PPUCTRL_NN      (( PPUCTRL And 3 ) * &h400 ) + &h2000
-	#Define PPUMASK_INTENSIFY_B    ( PPUMASK And 128 ) / 128
-	#Define PPUMASK_INTENSIFY_G    ( PPUMASK And 64 ) / 64
-	#Define PPUMASK_INTENSIFY_R    ( PPUMASK And 32 ) / 32
-	#Define  PPUMASK_S       ( PPUMASK And 16 ) / 16
-	#Define  PPUMASK_B       ( PPUMASK And 8 ) / 8
-	#Define  PPUMASK_SL      ( PPUMASK And 4 ) / 4
-	#Define  PPUMASK_BL      ( PPUMASK And 2 ) / 2
-	#Define  PPUMASK_G       ( PPUMASK And 1 ) 
-	#Define  PPUSTATUS_V     ( PPUSTATUS And 128 ) / 128
-	#Define  PPUSTATUS_S     ( PPUSTATUS And 64 ) / 64
-	#Define  PPUSTATUS_O     ( PPUSTATUS And 32 ) / 32 
+#define PPUCTRL cpu.memory(&h2000)
+#Define PPUMASK cpu.memory(&h2001)
+#Define PPUSTATUS cpu.memory(&h2002)
+#Define OAMADDR cpu.memory(&h2003)
+#Define OAMDATA cpu.memory(&h2004)
+#Define PPUSCROLL cpu.memory(&h2005)
+#Define PPUADDR cpu.memory(&h2006)
+#Define PPUDATA cpu.memory(&h2007)
+#Define OAMDMA cpu.memory(&h4014)
+#define  PPUCTRL_V        ( ppuctrl And 128 ) / 128
+#Define  PPUCTRL_P        ( ppuctrl And 64 ) / 64
+#Define  PPUCTRL_H        ( ppuctrl And 32 ) / 32
+#Define  PPUCTRL_B        (( ppuctrl And 16 ) / 16) * &h1000
+#Define  PPUCTRL_S        ( PPUCTRL And 8 ) / 8
+#Define  PPUCTRL_I        (( PPUCTRL And 4 ) / 4)
+#Define  PPUCTRL_NN      (( PPUCTRL And 3 ) * &h400 ) + &h2000
+#Define PPUMASK_INTENSIFY_B    ( PPUMASK And 128 ) / 128
+#Define PPUMASK_INTENSIFY_G    ( PPUMASK And 64 ) / 64
+#Define PPUMASK_INTENSIFY_R    ( PPUMASK And 32 ) / 32
+#Define  PPUMASK_S       ( PPUMASK And 16 ) / 16
+#Define  PPUMASK_B       ( PPUMASK And 8 ) / 8
+#Define  PPUMASK_SL      ( PPUMASK And 4 ) / 4
+#Define  PPUMASK_BL      ( PPUMASK And 2 ) / 2
+#Define  PPUMASK_G       ( PPUMASK And 1 )
+#Define  PPUSTATUS_V     ( PPUSTATUS And 128 ) / 128
+#Define  PPUSTATUS_S     ( PPUSTATUS And 64 ) / 64
+#Define  PPUSTATUS_O     ( PPUSTATUS And 32 ) / 32
 #Include Once "inc/loadrom.bi"
 loadini ' need to load it here because of font stuff
 ChDir ExePath
@@ -205,6 +206,7 @@ font.set_back_color(RGB(0,0,0))
                                      End font stuff
 ================================================================================'/
 #Include Once "inc/misc.bi" 'misc stuff
+#Include Once "inc/Controller.bi"
 #Include Once "inc/ppu.bi" 'PPU
 #Include Once "inc/6502_instruction_set.bi" ' contains the instruction set
 #Include Once "inc/decoder.bi" ' decodes hex opcodes to asm
@@ -225,7 +227,8 @@ Sub status
 	Put (1,1),blackout,PSet
 	ImageDestroy(blackout)
 	font.set_size 10
-	fprint 1,15, "Emulator mode: " & emulatorMode
+	'fprint 1,15, "Emulator mode: " & emulatorMode
+	fprint 1,15, Str(button_counter)
 	'fprint 1,15, Str(ticks / (Timer-start)) 'Cycles per second
 	fprint 1,25, "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
 	fprint 1,35, "Total ops: " & totalops & " | Stepping by: " & opstoskip & "                     "
@@ -234,7 +237,7 @@ Sub status
 	fprint 1,75, "________________________               "
 	fprint 1,85, "A: " & IIf(cpu.acc < &h10,"0" & Hex(cpu.acc),Hex(cpu.acc)) & " X: " & IIf(cpu.x < &h10,"0" & Hex(cpu.x),Hex(cpu.x)) & " Y: " & IIf(cpu.y < &h10,"0" & Hex(cpu.y),Hex(cpu.y)) & "                         "
 	fprint 1,95, "PC: " & cpu.PC & " ($" & Hex(cpu.pc) & ")" & "                         "
-	fprint 1,105, "Stack pointer: " & cpu.sp - &hff & "($" & Hex(cpu.sp-&hff) & ")" & "                         "
+	fprint 1,105, "Stack pointer: " & cpu.sp & "($" & Hex(cpu.sp) & ")" & "                         "
 	Line(1,115)-(120,143),RGB(255,255,255),b
 	fprint 3,125, "N   V   -   B   D   I   Z   C"
 	Line (1,130)-(120,130),RGB(255,255,255)
@@ -337,7 +340,7 @@ Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write memory
 			Case &h4000 To &h4015, &h4017
 				'apu stuff
 			Case &h4016
-				'controller stuff
+           PadWrite
 				'reset the read position
 			Case Else
 				cpu.memory(addr) = value
@@ -362,15 +365,15 @@ Sub loadini 'load the ini. Duh.
 End Sub
 
 Sub write_the_log
-Print #99, "Op number: " & totalops
-Print #99, ophistory(0)
-Print #99, "CPU.PC: " & cpu.pc & " (0x" & Hex(cpu.pc) & ") | " & "CPU.SP: " & cpu.sp & " (0x" & Hex(cpu.sp) & ") | " & "CPU.PS: " & cpu.ps & " (0x" & Hex(cpu.ps) & ")"
-Print #99, "CPU.ACC: " & cpu.acc & " (0x" & Hex(cpu.acc) & ") | " & "CPU.X: " & cpu.x & " (0x" & Hex(cpu.x) & ") | " & "CPU.Y: " & cpu.y & " (0x" & Hex(cpu.y) & ")"
-Print #99, "-----------------"
-Print #99, "|N|V|-|B|D|I|Z|C|"
-Print #99, "|" & flag_S & "|" & flag_v & "|" & flag_u & "|" & flag_b & "|" & flag_d & "|" & flag_i & "|" & flag_z & "|" & flag_c & "|"
-Print #99, "-----------------"  
-Print #99, "----------------------------------------------------------------------------------------------------------------"
+	Print #99, "Op number: " & totalops
+	Print #99, ophistory(0)
+	Print #99, "CPU.PC: " & cpu.pc & " (0x" & Hex(cpu.pc) & ") | " & "CPU.SP: " & cpu.sp & " (0x" & Hex(cpu.sp) & ") | " & "CPU.PS: " & cpu.ps & " (0x" & Hex(cpu.ps) & ")"
+	Print #99, "CPU.ACC: " & cpu.acc & " (0x" & Hex(cpu.acc) & ") | " & "CPU.X: " & cpu.x & " (0x" & Hex(cpu.x) & ") | " & "CPU.Y: " & cpu.y & " (0x" & Hex(cpu.y) & ")"
+	Print #99, "-----------------"
+	Print #99, "|N|V|-|B|D|I|Z|C|"
+	Print #99, "|" & flag_S & "|" & flag_v & "|" & flag_u & "|" & flag_b & "|" & flag_d & "|" & flag_i & "|" & flag_z & "|" & flag_c & "|"
+	Print #99, "-----------------"
+	Print #99, "----------------------------------------------------------------------------------------------------------------"
 End Sub
 
 Sub CAE
@@ -395,7 +398,7 @@ Do
 	opsPerSecond = totalops / (Timer-start)
 	'====================================REMOVE THIS======================================================
 	If totalops = 27000 Then cpu.memory(&h2002) = &h80 'Temporary tell the system that the PPU is warmed up
-   If emulatormode = "6502" Then cpu.memory(&hfe) = Rnd*255 ' random number generator for simple 6502 programs
+	If emulatormode = "6502" Then cpu.memory(&hfe) = Rnd*255 ' random number generator for simple 6502 programs
 	'====================================REMOVE THIS======================================================
 	keycheck
 	cpu.oldpc = cpu.pc 'this is for storing debug information
@@ -454,7 +457,7 @@ Do
 	/'==============================================================================
                                        End sanity checks
 ================================================================================'/
-If logops = 1 Then write_the_log
+	If logops = 1 Then write_the_log
 Loop While Not MultiKey(SC_ESCAPE)
 Close
 CAE
