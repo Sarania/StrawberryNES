@@ -55,7 +55,7 @@ Sub loadROM
 		ReDim As UByte chrROM(header.chrSize*8*1024)
 		ReDim As UByte prgRAM(header.prgRAMSize*8*1024)
 		Get #1, 17, prgROM()
-		Get #1, 17 + header.prgSize, chrROM()
+		Get #1, 17 + header.prgSize*16*1024, chrROM()
 		emulatorMode = "NES"
 	End If
 	Close #1

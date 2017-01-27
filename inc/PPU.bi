@@ -55,12 +55,23 @@ Function readPPUreg(ByVal addr As UShort)As ULongInt
 End Function
 
 Sub ProcessCurTile
-	Dim As UInteger pixel
-	Dim As UInteger palette_address = &h3f00 + (ppu.curAttrb * 4)
-	dim as uinteger pPalette = ppu.vram(&h3f00) + (ppu.vram(palette_address) Shl 8) + (ppu.vram(palette_address+1) Shl 16) + (ppu.vram(palette_address+2) Shl 24)
+	Dim As Ubyte pixel
+	'Dim As UInteger palette_address = &h3f00 + (ppu.curAttrb * 4)
+	'dim as uinteger pPalette = ppu.vram(&h3f00) + (ppu.vram(palette_address) Shl 8) + (ppu.vram(palette_address+1) Shl 16) + (ppu.vram(palette_address+2) Shl 24)
 	For zz As Integer = 0 To 7
-		pixel =((ppu.lbit Shr 7) and &h1) + ((ppu.ubit Shr 7) and &h1) Shl 1
-		If pixel Then PSet framebuffer, (ppu.curx,ppu.cury), RGB(255,255,255)
+		'Cls
+		'Print "Totalops " & totalops
+		'Print "PPU.scanline " & ppu.scanline
+		'Print "PPU.lbit " & Bin(ppu.lbit)
+		'Print "PPU.ubit " & Bin(ppu.ubit)
+		'Print "lbit side " & Bin(((ppu.lbit Shr 7) and &h1))
+		'Print "ubit side " & Bin((((ppu.ubit Shr 7) and &h1)))
+		'Print "whole expression " & Bin(((ppu.lbit Shr 7) and &h1) + (((ppu.ubit Shr 7) and &h1) Shl 1))
+		'sleep
+		pixel =((ppu.lbit Shr 7) and &h1) + (((ppu.ubit Shr 7) and &h1) Shl 1)
+		'If Bit(ppu.lbit,zz) Then pixel = BitSet(pixel,0) Else pixel = BitReset(pixel,0)
+		'If Bit(ppu.ubit,zz) Then pixel = BitSet(pixel,1) Else pixel = BitreSet(pixel,1)
+	   PSet framebuffer, (ppu.curx,ppu.cury), RGB(pixel*85,pixel*85,pixel*85)
 		ppu.curx+=1
 		ppu.lbit Shl = 1
 		ppu.ubit Shl = 1
@@ -76,12 +87,12 @@ Sub ppuLoop
 		Case -1 'prerender scanline
 			framebuffer=ImageCreate(256,240,RGB(0,0,0))
 		Case 0 To 239 'proper scanline
+			Dim temp_P As UInteger
 			ppu.tableLine = PPUCTRL_NN + ((ppu.scanline \ 8) * 32)
 			ppu.attrbLine = PPUCTRL_NN + &h3C0 + ((ppu.scanline \ 32) * 8)
 			For z As UByte = 0 To 31
-				ppu.curAttrb = ppu.attrbLine + (z \ 4)
-				ppu.curtile = ppu.tableLine+z
-
+				ppu.curAttrb = ppu.vram(ppu.attrbLine + (z \ 4))
+				ppu.curtile = ppu.vram(ppu.tableLine+z) 'this contains the pattern lookup from the nametable
 				If Not (ppu.scanline\16) And 1 Then
 					If (z\2) And 1 Then
 						ppu.palette = (ppu.curAttrb Shr 2) And &h3
@@ -95,8 +106,10 @@ Sub ppuLoop
 						ppu.palette=(ppu.curAttrb Shr 4) And &h3
 					EndIf
 				End If
-				ppu.lbit = ppu.vram(((PPUCTRL_B + (ppu.curTile * 16) + (ppu.scanline and &h7))/&h10))
-				ppu.ubit = ppu.vram(((PPUCTRL_B + (ppu.CurTile * 16) + (ppu.scanline and &h7) + 8)/&h10))
+				temp_P = PPUCTRL_B
+				ppu.lbit = ppu.vram(((temp_P + (ppu.curTile * 16))))
+				ppu.ubit = ppu.vram(((temp_p + (ppu.CurTile * 16)  + 8)))
+				'If totalops > 70000 then
 				'Cls
 				'Print "PPU.scanline: 0x" & Hex(ppu.scanline)
 				'Print "PPU.tableline: 0x" & Hex(ppu.tableLine)
@@ -104,7 +117,11 @@ Sub ppuLoop
 				'Print "PPU.curattrb: 0x" & Hex(ppu.curAttrb)
 				'Print "PPU.curtile: 0x" & Hex(ppu.curtile)
 				'Print "PPUCTRL_B: 0x"& Hex(ppuCTRL_B)
+				'Print temp_P
+				'Print Hex(((temp_P + (ppu.curTile * 16))))
+				'Print ppu.curtile
 				'Sleep
+				'End if
 				ProcessCurTile
 			Next
 		Case 240 'post render scanline

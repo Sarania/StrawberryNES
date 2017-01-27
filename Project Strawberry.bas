@@ -128,8 +128,8 @@ Type ppus
 	attrbLine As UInteger
 	curAttrb As UInteger
 	Palette As UInteger
-	ubit As UInteger
-	lbit As UInteger
+	ubit As UByte
+	lbit As Ubyte
 	curx As UInteger 
 	cury As uinteger
 End Type
@@ -267,6 +267,7 @@ End Sub
 Sub initcpu 'initialize CPU and RAM
 	For i As Integer = 0 To 65535
 		cpu.memory(i) = 0
+		ppu.vram(i) = 0
 	Next
 
 	clear_s
