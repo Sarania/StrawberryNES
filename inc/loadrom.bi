@@ -28,7 +28,7 @@ Sub loadROM
 		shpname = shpname & onechr
 	Next
 
-	WindowTitle "Project Strawberry: " & shpname ' set window title
+	WindowTitle "StrawberryNES - " & shpname ' set window title
 	Open progname For Binary As #1
 	romsize = Lof(1)
 	ReDim As UByte rom(romsize) ' make ROM be the size of the... ROM

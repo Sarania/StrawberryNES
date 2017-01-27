@@ -475,7 +475,6 @@ Sub INS_RTI
 	cpu.pc = cpu.memory(&h100+cpu.sp)
 	cpu.sp+=1 
 	cpu.PC OR= (cpu.memory(&h100+cpu.sp)Shl 8)
-	
 End Sub
 
 Sub INS_RTS

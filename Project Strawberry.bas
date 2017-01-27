@@ -66,8 +66,6 @@ Dim Shared As UInteger status_timer
 Dim Shared As Any Ptr framebuffer
 Dim Shared As uinteger masterPalette(64) = {&h545454, &h001E74, &h081090, &h300088, &h440064, &h5C0030, &h540400, &h3C1800, &h202A00, &h083A00, &h004000, &h003C00, &h00323C, &h000000, &h000000, &h000000, &h989698, &h084CC4, &h3032EC, &h5C1EE4, &h8814B0, &hA01464, &h982220, &h783C00, &h545A00, &h287200, &h087C00, &h007628, &h006678, &h000000, &h000000, &h000000, &hECEEEC, &h4C9AEC, &h787CEC, &hB062EC, &hE454EC, &hEC58B4, &hEC6A64, &hD48820, &hA0AA00, &h74C400, &h4CD020, &h38CC6C, &h38B4CC, &h3C3C3C, &h000000, &h000000, &hECEEEC, &hA8CCEC, &hBCBCEC, &hD4B2EC, &hECAEEC, &hECAED4, &hECB4B0, &hE4C490, &hCCD278, &hB4DE78, &hA8E290, &h98E2B4, &hA0D6E4, &hA0A2A0, &h000000, &h000000}
 
-
-
 Type cpus
 	'------------------------'
 	'   6502 Registers/MEM   '
@@ -212,7 +210,7 @@ font.set_back_color(RGB(0,0,0))
 #Include Once "inc/decoder.bi" ' decodes hex opcodes to asm
 emulatorMode = "6502"
 lastframetime = Timer
-version = "0.40 alpha"
+version = "0.60 alpha"
 debug = 1
 opstoskip = 1
 nextskip = 1
@@ -228,7 +226,7 @@ Sub status
 	ImageDestroy(blackout)
 	font.set_size 10
 	fprint 1,15, "Emulator mode: " & emulatorMode
-	fprint 1,15, Str(ticks / (Timer-start))
+	'fprint 1,15, Str(ticks / (Timer-start)) 'Cycles per second
 	fprint 1,25, "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
 	fprint 1,35, "Total ops: " & totalops & " | Stepping by: " & opstoskip & "                     "
 	fprint 1,45, "Ops per second: " &  opsPerSecond & "                         "
@@ -252,7 +250,7 @@ Sub status
 		fprint 1, 195+(i*10), opHistory(i) & "               "
 	Next
 	font.set_size 18
-	fprint(2, screeny-55, "Project Strawberry",RGB(255,0,0))
+	fprint(2, screeny-55, "StrawberryNES",RGB(255,0,0))
 	fprint(2, screeny-40, "Version 0.40 alpha ")
 	fprint(2, screeny-25, "By Blyss Sarania and Nobbs66")
 	Put(screenx-70,6),strawberry, Alpha
@@ -294,7 +292,7 @@ Sub nmi
 	cpu.sp -=1
 	writemem(cpu.sp+&h100,cpu.ps)
 	cpu.sp -=1
-	set_i
+	'set_i
 	Dim suspicious_pointer As UShort Ptr
 	Dim suspicious_array(0 To 1) As UByte
 	suspicious_array(0) = readmem(&HFFFA)

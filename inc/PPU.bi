@@ -41,7 +41,7 @@ Function readPPUreg(ByVal addr As UShort)As ULongInt
 	Select Case addr
 		Case &h2002
 			value = PPUSTATUS
-			PPUSTATUS = PPUSTATUS And 127
+			PPUSTATUS = PPUSTATUS And &h7F
 			' ppu.addrLatch = 0
 			'clear latch and scroll latch
 		Case &h2004
@@ -74,6 +74,7 @@ End Sub
 Sub ppuLoop
 	Select Case ppu.scanline
 		Case -1 'prerender scanline
+			PPUSTATUS And= &h7F
 			framebuffer=ImageCreate(256,240,RGB(0,0,0))
 		Case 0 To 239 'proper scanline
 			Dim temp_P As UInteger
@@ -108,9 +109,9 @@ Sub ppuLoop
 			ppu.curx=0
 			ppu.cury=0
 	End Select
-	If ppu.scanline > 240 Then
+	If ppu.scanline = 241 Then
+		PPUSTATUS Or= &h80
 		If PPUCTRL_V = 1 Then
-			PPUSTATUS Or= &h80
 			nmi
 		EndIf
 	EndIf
