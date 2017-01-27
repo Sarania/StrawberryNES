@@ -56,7 +56,7 @@ Declare Sub loadROM 'load a ROM in to memory
 Declare Sub CAE 'Cleanup and exit
 Declare Sub loadini 'Load the ini file
 Declare Sub nmi
-Declare Sub Write_The_log
+Declare Sub write_the_log
 Dim Shared As UByte debug
 Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=0
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
@@ -64,7 +64,7 @@ Dim Shared As Single start, lastframetime,opsPerSecond, stepstart
 Dim Shared As Any Ptr strawberry
 Dim Shared As UInteger status_timer
 Dim Shared As Any Ptr framebuffer
-Dim Shared As uinteger masterPalette(64) = {&hff545454, &hFF001E74, &hFF081090, &hFF300088, &hFF440064, &hFF5C0030, &hFF540400, &hFF3C1800, &hFF202A00, &hFF083A00, &hFF004000, &hFF003C00, &hFF00323C, &hFF000000, &hFF000000, &hFF000000, &hFF989698, &hFF084CC4, &hFF3032EC, &hFF5C1EE4, &hFF8814B0, &hFFA01464, &hFF982220, &hFF783C00, &hFF545A00, &hFF287200, &hFF087C00, &hFF007628, &hFF006678, &hFF000000, &hFF000000, &hFF000000, &hFFECEEEC, &hFF4C9AEC, &hFF787CEC, &hFFB062EC, &hFFE454EC, &hFFEC58B4, &hFFEC6A64, &hFFD48820, &hFFA0AA00, &hFF74C400, &hFF4CD020, &hFF38CC6C, &hFF38B4CC, &hFF3C3C3C, &hFF000000, &hFF000000, &hFFECEEEC, &hFFA8CCEC, &hFFBCBCEC, &hFFD4B2EC, &hFFECAEEC, &hFFECAED4, &hFFECB4B0, &hFFE4C490, &hFFCCD278, &hFFB4DE78, &hFFA8E290, &hFF98E2B4, &hFFA0D6E4, &hFFA0A2A0, &hFF000000, &hFF000000}
+Dim Shared As uinteger masterPalette(64) = {&h545454, &h001E74, &h081090, &h300088, &h440064, &h5C0030, &h540400, &h3C1800, &h202A00, &h083A00, &h004000, &h003C00, &h00323C, &h000000, &h000000, &h000000, &h989698, &h084CC4, &h3032EC, &h5C1EE4, &h8814B0, &hA01464, &h982220, &h783C00, &h545A00, &h287200, &h087C00, &h007628, &h006678, &h000000, &h000000, &h000000, &hECEEEC, &h4C9AEC, &h787CEC, &hB062EC, &hE454EC, &hEC58B4, &hEC6A64, &hD48820, &hA0AA00, &h74C400, &h4CD020, &h38CC6C, &h38B4CC, &h3C3C3C, &h000000, &h000000, &hECEEEC, &hA8CCEC, &hBCBCEC, &hD4B2EC, &hECAEEC, &hECAED4, &hECB4B0, &hE4C490, &hCCD278, &hB4DE78, &hA8E290, &h98E2B4, &hA0D6E4, &hA0A2A0, &h000000, &h000000}
 
 
 
@@ -151,7 +151,7 @@ ReDim Shared As UByte prgROM(0 To 1)
 ReDim Shared As UByte chrROM(0 To 1)
 ReDim Shared As UByte prgRAM(0 To 1)
 Dim Shared cpu As cpus '6502 CPU
-Dim Shared ppu As ppus 'suspicious PPU
+Dim Shared ppu As ppus 'slightly less suspicious PPU
 Dim Shared header As headers
 	#define PPUCTRL cpu.memory(&h2000)
 	#Define PPUMASK cpu.memory(&h2001)
@@ -227,8 +227,8 @@ Sub status
 	Put (1,1),blackout,PSet
 	ImageDestroy(blackout)
 	font.set_size 10
-	'fprint 1,15, "Emulator mode: " & emulatorMode
-	fprint 1,15, Hex(ppuCTRL_B)
+	fprint 1,15, "Emulator mode: " & emulatorMode
+	fprint 1,15, Str(ticks / (Timer-start))
 	fprint 1,25, "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
 	fprint 1,35, "Total ops: " & totalops & " | Stepping by: " & opstoskip & "                     "
 	fprint 1,45, "Ops per second: " &  opsPerSecond & "                         "
@@ -240,7 +240,6 @@ Sub status
 	Line(1,115)-(120,143),RGB(255,255,255),b
 	fprint 3,125, "N   V   -   B   D   I   Z   C"
 	Line (1,130)-(120,130),RGB(255,255,255)
-	'fprint 3,140, cpu.flagS & "   " & cpu.flagV & "   " & cpu.flagU & "   " & cpu.flagB & "   " & cpu.flagD & "   " & cpu.flagI & "   " & cpu.flagZ & "   " & cpu.flagC
 	fprint 3,140, Flag_S & "   " & Flag_V & "   " & flag_U & "   " & flag_B & "   " & flag_D & "   " & flag_I & "   " & flag_Z & "   " & flag_C
 	For z As UByte = 0 To 6
 		Line (12+(z*15),115)-(12+(z*15),143),RGB(255,255,255)
@@ -340,6 +339,7 @@ Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write memory
 				'apu stuff
 			Case &h4016
 				'controller stuff
+				'reset the read position
 			Case Else
 				cpu.memory(addr) = value
 		End Select

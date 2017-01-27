@@ -28,11 +28,11 @@ Function writePPUreg(ByVal addr As UShort, ByVal value As UByte) As ULongInt
 				ppu.vrAddr And= &h3FFF
 			endif
 		Case &h2007
-				ppu.vram(ppu.vrAddr) = value
-				If PPUCTRL_I = 1 Then
-					ppu.vrAddr += 32
-				Else ppu.vrAddr += 1
-				EndIf
+			ppu.vram(ppu.vrAddr) = value
+			If PPUCTRL_I = 1 Then
+				ppu.vrAddr += 32
+			Else ppu.vrAddr += 1
+			EndIf
 			ppu.vrAddr And= &h3FFF
 	End Select
 End Function
@@ -56,30 +56,19 @@ End Function
 
 Sub ProcessCurTile
 	Dim As Ubyte pixel
-	'Dim As UInteger palette_address = &h3f00 + (ppu.curAttrb * 4)
-	'dim as uinteger pPalette = ppu.vram(&h3f00) + (ppu.vram(palette_address) Shl 8) + (ppu.vram(palette_address+1) Shl 16) + (ppu.vram(palette_address+2) Shl 24)
-	For zz As Integer = 0 To 7
-		'Cls
-		'Print "Totalops " & totalops
-		'Print "PPU.scanline " & ppu.scanline
-		'Print "PPU.lbit " & Bin(ppu.lbit)
-		'Print "PPU.ubit " & Bin(ppu.ubit)
-		'Print "lbit side " & Bin(((ppu.lbit Shr 7) and &h1))
-		'Print "ubit side " & Bin((((ppu.ubit Shr 7) and &h1)))
-		'Print "whole expression " & Bin(((ppu.lbit Shr 7) and &h1) + (((ppu.ubit Shr 7) and &h1) Shl 1))
-		'sleep
-		pixel =((ppu.lbit Shr 7) and &h1) + (((ppu.ubit Shr 7) and &h1) Shl 1)
-		'If Bit(ppu.lbit,zz) Then pixel = BitSet(pixel,0) Else pixel = BitReset(pixel,0)
-		'If Bit(ppu.ubit,zz) Then pixel = BitSet(pixel,1) Else pixel = BitreSet(pixel,1)
-	   PSet framebuffer, (ppu.curx,ppu.cury), RGB(pixel*85,pixel*85,pixel*85)
-		ppu.curx+=1
-		ppu.lbit Shl = 1
-		ppu.ubit Shl = 1
-		If ppu.curx = 256 Then
-			ppu.cury+=1
-			ppu.curx=0
-		EndIf
-	Next
+	Dim As UInteger palette_address = &h3f01 + (ppu.palette * 4)
+	Dim as uinteger pPalette = ppu.vram(&h3f00) + (ppu.vram(palette_address) Shl 8) + (ppu.vram(palette_address+1) Shl 16) + (ppu.vram(palette_address+2) Shl 24)
+For zz As Integer = 0 To 7
+pixel =((ppu.lbit Shr 7) and &h1) + (((ppu.ubit Shr 7) and &h1) Shl 1)
+PSet framebuffer, (ppu.curx,ppu.cury), masterpalette((pPalette Shr (pixel * 8) AND &hff))
+ppu.curx+=1
+ppu.lbit Shl = 1
+ppu.ubit Shl = 1
+If ppu.curx = 256 Then
+ppu.cury+=1
+ppu.curx=0
+EndIf
+Next
 End Sub
 
 Sub ppuLoop
@@ -106,22 +95,9 @@ Sub ppuLoop
 						ppu.palette=(ppu.curAttrb Shr 4) And &h3
 					EndIf
 				End If
-				temp_P = PPUCTRL_B
+				temp_p = PPUCTRL_B + (ppu.scanline AND 7)
 				ppu.lbit = ppu.vram(((temp_P + (ppu.curTile * 16))))
 				ppu.ubit = ppu.vram(((temp_p + (ppu.CurTile * 16)  + 8)))
-				'If totalops > 70000 then
-				'Cls
-				'Print "PPU.scanline: 0x" & Hex(ppu.scanline)
-				'Print "PPU.tableline: 0x" & Hex(ppu.tableLine)
-				'Print "PPU.attrbline: 0x" & hex(ppu.attrbline)
-				'Print "PPU.curattrb: 0x" & Hex(ppu.curAttrb)
-				'Print "PPU.curtile: 0x" & Hex(ppu.curtile)
-				'Print "PPUCTRL_B: 0x"& Hex(ppuCTRL_B)
-				'Print temp_P
-				'Print Hex(((temp_P + (ppu.curTile * 16))))
-				'Print ppu.curtile
-				'Sleep
-				'End if
 				ProcessCurTile
 			Next
 		Case 240 'post render scanline
