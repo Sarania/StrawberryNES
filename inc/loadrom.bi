@@ -70,7 +70,7 @@ Sub loadROM
 			Cls
 			Print "ROM too big until mapper implemented"
 			Sleep 2000,1
-			cae
+			CAE
 		EndIf
 		Cls
 		For i As Integer = 0 To (header.prgSize*16*1024)-1

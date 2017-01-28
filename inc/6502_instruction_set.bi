@@ -93,7 +93,8 @@ Sub get_data
 			tdata = @cpu.memory(taddr)
 			cpu.pc+=1
 		Case "IND" 'Indirect
-			taddr = readmem(cpu.pc,2)
+			indaddr = readmem(cpu.pc,2)
+			taddr = readmem(indaddr,2)
 			cpu.pc+=2
 		Case "ZPX" 'Zero page X
 			taddr = readmem(cpu.pc) + cpu.X

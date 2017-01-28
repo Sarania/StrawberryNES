@@ -369,7 +369,6 @@ If logops = 1 Then Open "log.txt" For Output As #99
 Do
 	opsPerSecond = totalops / (Timer-start)
 	'====================================REMOVE THIS======================================================
-	If totalops = 27000 Then cpu.memory(&h2002) = &h80 'Temporary tell the system that the PPU is warmed up
 	If emulatormode = "6502" Then cpu.memory(&hfe) = Rnd*255 ' random number generator for simple 6502 programs
 	'====================================REMOVE THIS======================================================
 	keycheck
