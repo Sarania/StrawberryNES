@@ -41,15 +41,14 @@ Copyright 2014 Blyss Sarania
 Randomize Timer
 #Include Once "fbgfx.bi"
 Using fb
+#Include Once "string.bi"
 #Include Once "crt.bi" 'c runtime
 #Include Once "file.bi" 'File functions
 #Include Once "Freeimage.bi" ' Freeimage library
 #Include Once "inc/freetofb.bi" 'Easily use Freeimage images in Freebasic
 #Include Once "zlib.bi"
-#Include Once "Inc/freetypeclass.bi" 'fontz
 Declare Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As ULongInt ' for reading memory
 Declare Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write a value to NES memory
-Declare Sub fprint(ByVal x As Integer, ByVal y As Integer, ByVal text As String, ByVal c As Integer = RGB(255,255,255))'Print to the screen with a font
 Declare Sub status 'print various status stuff to the screen
 Declare Sub initcpu 'initialize the 6502
 Declare Sub loadROM 'load a ROM in to memory
@@ -57,12 +56,14 @@ Declare Sub CAE 'Cleanup and exit
 Declare Sub loadini 'Load the ini file
 Declare Sub nmi
 Declare Sub write_the_log
+Declare Sub push_Framebuffer
+Declare Sub clear_framebuffer
 Dim Shared As UByte debug, trace_done = 0
 Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=0
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
 Dim Shared As Single start, lastframetime,opsPerSecond, stepstart
 Dim Shared As Any Ptr strawberry
-Dim Shared As UInteger status_timer
+Dim Shared As UInteger status_timer, vblanks
 Dim Shared As Any Ptr framebuffer
 Dim Shared As uinteger masterPalette(64) = {&h545454, &h001E74, &h081090, &h300088, &h440064, &h5C0030, &h540400, &h3C1800, &h202A00, &h083A00, &h004000, &h003C00, &h00323C, &h000000, &h000000, &h000000, &h989698, &h084CC4, &h3032EC, &h5C1EE4, &h8814B0, &hA01464, &h982220, &h783C00, &h545A00, &h287200, &h087C00, &h007628, &h006678, &h000000, &h000000, &h000000, &hECEEEC, &h4C9AEC, &h787CEC, &hB062EC, &hE454EC, &hEC58B4, &hEC6A64, &hD48820, &hA0AA00, &h74C400, &h4CD020, &h38CC6C, &h38B4CC, &h3C3C3C, &h000000, &h000000, &hECEEEC, &hA8CCEC, &hBCBCEC, &hD4B2EC, &hECAEEC, &hECAED4, &hECB4B0, &hE4C490, &hCCD278, &hB4DE78, &hA8E290, &h98E2B4, &hA0D6E4, &hA0A2A0, &h000000, &h000000}
 Dim Shared As UByte button_counter
@@ -183,28 +184,6 @@ Dim Shared header As headers
 loadini ' need to load it here because of font stuff
 ChDir ExePath
 ChDir("..")
-
-/'==============================================================================
-                                       font stuff
-================================================================================'/
-Dim As Integer fonts = 18
-'compute font based on screeny, sketchy but works reasonably well
-fonts = CInt(screeny/32)
-'but not smaller than 18
-If fonts < 18 Then fonts = 18
-
-'Load fonts
-Dim Shared As truetype font
-If font.init Then Stop
-If font.get_font("res/arial.ttf")=0 Then Stop
-font.set_render_mode(FT_RENDER_MODE_NORMAL)
-font.set_screen_size(screenx,screeny)
-font.set_size(fonts)
-font.set_color(RGB(255,255,255))
-font.set_back_color(RGB(0,0,0))
-/'==============================================================================
-                                     End font stuff
-================================================================================'/
 #Include Once "inc/misc.bi" 'misc stuff
 #Include Once "inc/Controller.bi"
 #Include Once "inc/ppu.bi" 'PPU
@@ -222,49 +201,42 @@ nextskip = 1
 ================================================================================'/
 
 Sub status
-	Dim blackout As Any Ptr
-	blackout = ImageCreate(screenx/2,screeny,RGB(0,0,0))
-	Put (1,1),blackout,PSet
-	ImageDestroy(blackout)
-	font.set_size 10
-	'fprint 1,15, "Emulator mode: " & emulatorMode
-	fprint 1,15, Str(button_counter)
-	'fprint 1,15, Str(ticks / (Timer-start)) 'Cycles per second
-	fprint 1,25, "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
-	fprint 1,35, "Total ops: " & totalops & " | Stepping by: " & opstoskip & "                     "
-	fprint 1,45, "Ops per second: " &  opsPerSecond & "                         "
-	fprint 1,65, "Registers:                                           "
-	fprint 1,75, "________________________               "
-	fprint 1,85, "A: " & IIf(cpu.acc < &h10,"0" & Hex(cpu.acc),Hex(cpu.acc)) & " X: " & IIf(cpu.x < &h10,"0" & Hex(cpu.x),Hex(cpu.x)) & " Y: " & IIf(cpu.y < &h10,"0" & Hex(cpu.y),Hex(cpu.y)) & "                         "
-	fprint 1,95, "PC: " & cpu.PC & " ($" & Hex(cpu.pc) & ")" & "                         "
-	fprint 1,105, "Stack pointer: " & cpu.sp & "($" & Hex(cpu.sp) & ")" & "                         "
-	Line(1,115)-(120,143),RGB(255,255,255),b
-	fprint 3,125, "N   V   -   B   D   I   Z   C"
-	Line (1,130)-(120,130),RGB(255,255,255)
-	fprint 3,140, Flag_S & "   " & Flag_V & "   " & flag_U & "   " & flag_B & "   " & flag_D & "   " & flag_I & "   " & flag_Z & "   " & flag_C
-	For z As UByte = 0 To 6
-		Line (12+(z*15),115)-(12+(z*15),143),RGB(255,255,255)
+	Draw String framebuffer, (0,0), "Emulator mode: " & emulatorMode
+	Draw String framebuffer, (0,10), "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
+	Draw String framebuffer, (0,20), "Total ops: " & totalops & " | Stepping by: " & opstoskip
+	Draw String framebuffer, (0,30), "Ops per second: " &  opsPerSecond
+	Draw String framebuffer, (0,40), "Registers: "
+	Draw String framebuffer, (0,50), "________________________"
+	Draw String framebuffer, (0,60), "A: " & IIf(cpu.acc < &h10,"0" & Hex(cpu.acc),Hex(cpu.acc)) & " X: " & IIf(cpu.x < &h10,"0" & Hex(cpu.x),Hex(cpu.x)) & " Y: " & IIf(cpu.y < &h10,"0" & Hex(cpu.y),Hex(cpu.y))
+	Draw String framebuffer, (0,70), "PC: " & cpu.PC & " ($" & Hex(cpu.pc) & ")"
+	Draw String framebuffer, (0,80), "Stack pointer: " & cpu.sp & "($" & Hex(cpu.sp) & ")"
+	Draw String framebuffer, (0,100), "N   V   -   B   D   I   Z   C"
+	Draw String framebuffer, (0,110), Flag_S & "   " & Flag_V & "   " & flag_U & "   " & flag_B & "   " & flag_D & "   " & flag_I & "   " & flag_Z & "   " & flag_C
+	Draw String framebuffer, (0,130), "Processor status: " & cpu.ps & " " & " (" & Hex(cpu.ps) & ")"
+	Draw String framebuffer, (0,140), "Message: " & msg
+	msg = ""
+	Draw String framebuffer, (0,150), "Trace: "
+	Line framebuffer, (0,95)-(240,120),RGB(255,255,255),b
+	For q As UByte = 1 To 60
+		Draw String framebuffer, (0,150 + (q*10)), opHistory(q)
 	Next
-	fprint 1,165, "Processor status: " & cpu.ps & " " & " (" & Hex(cpu.ps) & ")"
-	fprint 1,175, "Message: " & msg
-	msg = "                                                                 "
-	fprint 1,185, "Trace:"
-	For i As Integer = 1 To 20
-		fprint 1, 195+(i*10), opHistory(i) & "               "
-	Next
-	font.set_size 18
-	fprint(2, screeny-55, "StrawberryNES",RGB(255,0,0))
-	fprint(2, screeny-40, "Version " & version)
-	fprint(2, screeny-25, "By Blyss Sarania and Nobbs66")
-	Put(screenx-70,6),strawberry, Alpha
-	screencopy
+	Put framebuffer, (screenx-300,6),strawberry, Alpha
+	Draw String framebuffer, (screenx - 250,60), "Version " & version
+	Draw String framebuffer, (screenx - 270, 70), "Blyss Sarania & Nobbs66"
+	Draw String framebuffer, (screenx - 210,80), Format(vblanks / (Timer-start),"0.00") & " fps"
 End Sub
 
-Sub fprint(ByVal x As Integer, ByVal y As Integer, ByVal text As String, ByVal c As Integer = RGB(255,255,255)) 'print to screen with font
-	font.set_color(c)
-	font.print_text(x, y, text)
+Sub clear_framebuffer
+	For q As UInteger = 0 To screeny
+		Line framebuffer, (0,q)-(screenx,q), 0
+	Next
 End Sub
 
+Sub push_framebuffer
+	status
+	Put(0,0),framebuffer,PSet
+	clear_framebuffer
+End Sub
 Sub initcpu 'initialize CPU and RAM
 	For i As Integer = 0 To 65535
 		cpu.memory(i) = 0
@@ -340,7 +312,7 @@ Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write memory
 			Case &h4000 To &h4015, &h4017
 				'apu stuff
 			Case &h4016
-           PadWrite
+				PadWrite
 				'reset the read position
 			Case Else
 				cpu.memory(addr) = value
@@ -386,8 +358,8 @@ End Sub
                                        End subroutines
 ================================================================================'/
 ScreenRes screenx,screeny,32,2
-ScreenSet 1,0
-strawberry = freeimage_load_fb(CurDir & "/Res/strawberry.png", TRUE) ' load cute strawberry :)
+framebuffer = ImageCreate(screenx,screeny,RGB(0,0,0))
+strawberry = freeimage_load_fb(CurDir & "/Res/SBNES.png", TRUE) ' load cute strawberry :)
 initcpu
 loadROM ' loadfile into ROM and cpu memory
 Cls
@@ -433,30 +405,15 @@ Do
 		While MultiKey(SC_SPACE): Sleep 10: Wend
 		start += (Timer-stepstart)
 		If start > Timer Then start = Timer
-		status
-		simplegraphics
-	EndIf
+		push_framebuffer
+	End if
 	status_timer+=1
-	If status_timer >= OpsPerSecond/20  Then
-		status
+	If status_timer >= OpsPerSecond/20 And emulatorMode = "6502" Then
 		simplegraphics
-		status_timer=0
+		push_framebuffer
+		status_timer = 0
 	End If
 	If opsPerSecond > opgoal Then Sleep 10
-
-	/'==============================================================================
-                                       Sanity Checks
-================================================================================'/
-
-	If cpu.sp > 255 Or cpu.sp < 0 Then
-		Cls
-		Print "Stack pointer out of bounds!"
-		Sleep
-		CAE
-	EndIf
-	/'==============================================================================
-                                       End sanity checks
-================================================================================'/
 	If logops = 1 Then write_the_log
 Loop While Not MultiKey(SC_ESCAPE)
 Close

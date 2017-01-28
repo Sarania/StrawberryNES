@@ -121,9 +121,9 @@ Sub simplegraphics
 					Line simplebuff, (dx*sf-sf,dy*sf-z)-(dx*sf,dy*sf-z), clr(cpu.memory(&h200 + memcount)And &hf)
 				Next
 			Next
-		next
+		Next
 		Line simplebuff, (0, 0)-(32*sf-1, 32*sf-1), RGB(255,255,255), b ' draw the box around the graphic area
-		Put (screenx-(32*sf)-25,screeny-(32*sf)-25), simplebuff, PSet
+		Put framebuffer, (screenx-(32*sf)-25,screeny-(32*sf)-25), simplebuff, PSet
 		ImageDestroy(simplebuff) ' Get rid of the buffer, or else memory leaks
 	end If
 End Sub
