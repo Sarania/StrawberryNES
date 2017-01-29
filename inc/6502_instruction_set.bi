@@ -111,7 +111,7 @@ Sub get_data
 			indaddr = (indaddr + cpu.X) And &hFF
 			taddr = readmem(indaddr,2)
 			tdata = @cpu.memory(taddr)
-			cpu.pc+=1
+         cpu.pc+=1
 		Case "INDY" 'indirectY
 			indaddr = readmem(cpu.pc)
 			taddr = readmem(indaddr,2)
@@ -155,14 +155,16 @@ Sub INS_ADC
 	'add with carry
 	Dim As uInteger adctmp
 	get_data
+		Dim As UByte adcdata = CUByte(*tdata)
+	adctmp = (cpu.acc + cubyte(adcdata) + flag_c)
 	clear_v
-	If (cpu.acc Xor *tdata) And &h80 <> &h80 Then
+	If ((cpu.acc Xor adcdata) And &h80) <> &h80 Then
 		If ((cpu.acc Xor adctmp) And &h80) = &h80 Then
 			set_v
 		End if
 	End If
+	If (adctmp And &hff) = 0 Then set_z Else clear_z
 	If Bit(adctmp,7) Then set_s Else clear_s
-	If adctmp = 0 Then set_z Else clear_z
 	If adctmp > &hff Then set_c Else clear_c
 	cpu.acc = adctmp And &hFF
 End Sub
@@ -181,7 +183,7 @@ Sub INS_ASL
 	If Bit(*tdata,7) Then set_c Else clear_c
 	*tdata Shl = 1
 	If Bit(*tdata,7) Then set_s Else clear_s
-	If tdata = 0 Then set_z Else clear_z
+	If *tdata = 0 Then set_z Else clear_z
 End Sub
 
 Sub INS_BCC
@@ -285,28 +287,28 @@ End Sub
 Sub INS_CMP
 	'compare accumulator with memory
 	get_data
-	Dim As UByte cmptmp = cpu.acc - *tdata
-	If cmptmp = 0 Then set_z Else clear_z
+	Dim As Uinteger cmptmp = cpu.acc - CUByte(*tdata)
+	If (cmptmp And &hff) = 0 Then set_z Else clear_z
 	If Bit(cmptmp,7) Then set_s Else clear_s
-	If cmptmp >= 0 Then set_c Else clear_c
+	If cmptmp < &h100 Then set_c Else clear_c
 End Sub
 
 Sub INS_CPX
 	'compare X with memory
 	get_data
-	Dim As UByte cmptmp = cpu.x - *tdata
-	If cmptmp = 0 Then set_z Else clear_z
+	Dim As Uinteger cmptmp = cpu.x - CUByte(*tdata)
+	If (cmptmp And &hff) = 0 Then set_z Else clear_z
 	If Bit(cmptmp,7) Then set_s Else clear_s
-	If cmptmp >= 0 Then set_c Else clear_c
+	If cmptmp < &h100 Then set_c Else clear_c
 End Sub
 
 Sub INS_CPY
 	'compare Y with memory
 	get_data
-	Dim As UByte cmptmp = cpu.y - *tdata
-	If cmptmp = 0 Then set_z Else clear_z
+	Dim As Uinteger cmptmp = cpu.y - CUByte(*tdata)
+	If (cmptmp And &hff) = 0 Then set_z Else clear_z
 	If Bit(cmptmp,7) Then set_s Else clear_s
-	If cmptmp >= 0 Then set_c Else clear_c
+	If cmptmp < &h100 Then set_c Else clear_c
 End Sub
 
 Sub INS_DEC
@@ -369,12 +371,14 @@ Sub INS_JMP
 End Sub
 
 Sub INS_JSR
-	'jump subroutine
-	get_data
-	writemem(&h100+cpu.sp,HiByte(cpu.pc))
-	writemem(&h100+cpu.sp-1,LoByte(cpu.pc))
-	cpu.sp-=2
-	cpu.pc = taddr
+'jump subroutine
+cpu.pc += 1
+writemem(&h100+cpu.sp,HiByte(cpu.pc))
+writemem(&h100+cpu.sp-1,LoByte(cpu.pc))
+cpu.pc -= 1
+get_data
+cpu.sp-=2
+cpu.pc = taddr
 End Sub
 
 Sub INS_LDA
@@ -406,9 +410,9 @@ Sub INS_LSR
 	get_data
 	If Bit(*tdata,0) Then set_c Else clear_c
 	*tdata Shr = 1
-	If Bit(*tdata,7) Then set_s Else clear_s
+	*tdata And = &h7f
+	 clear_s
 	If *tdata = 0 Then set_z Else clear_z
-
 End Sub
 
 Sub INS_NOP
@@ -486,6 +490,7 @@ Sub INS_RTI
 	cpu.pc = cpu.memory(&h100+cpu.sp)
 	cpu.sp +=1
 	cpu.PC OR= (cpu.memory(&h100+cpu.sp)Shl 8)
+	set_u
 End Sub
 
 Sub INS_RTS
@@ -493,6 +498,7 @@ Sub INS_RTS
 	cpu.pc = readmem(&h100+cpu. sp)
 	cpu.sp+=1
 	cpu.pc Or= readmem(&h100+cpu.sp) shl 8
+	cpu.pc+=1
 End Sub
 
 Sub INS_SBC

@@ -61,7 +61,7 @@ Declare Sub clear_framebuffer
 Declare Sub comparelog
 Declare Sub fail(ByVal op As String, ByVal expected As String, ByVal actual As String)
 Dim Shared As UByte debug, trace_done = 0
-Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=1
+Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=0
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
 Dim Shared As Single start, lastframetime,opsPerSecond, stepstart
 Dim Shared As Any Ptr strawberry
