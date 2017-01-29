@@ -27,19 +27,19 @@ Sub keycheck
 		nextskip = opstoskip
 		While MultiKey(SC_PAGEUP):Sleep 10: wend
 	EndIf
-	If MultiKey(SC_w) Then
-		cpu.memory(&hff) = Asc("w")
-	elseIf MultiKey(SC_a) Then
-		cpu.memory(&hff) = Asc("a")
-	elseIf MultiKey(SC_s) Then
-		cpu.memory(&hff) = Asc("s")
-	elseIf MultiKey(SC_d) Then
-		cpu.memory(&hff) = Asc("d")
-	elseIf MultiKey(SC_x) Then
-		cpu.memory(&hff) = Asc("x")
-	Else
-		cpu.memory(&hff)=Asc(" ")
-	EndIf
+	'If MultiKey(SC_w) Then
+	'	cpu.memory(&hff) = Asc("w")
+	'elseIf MultiKey(SC_a) Then
+	'	cpu.memory(&hff) = Asc("a")
+	'elseIf MultiKey(SC_s) Then
+	'	cpu.memory(&hff) = Asc("s")
+	'elseIf MultiKey(SC_d) Then
+	'	cpu.memory(&hff) = Asc("d")
+	'elseIf MultiKey(SC_x) Then
+	'	cpu.memory(&hff) = Asc("x")
+	'Else
+	'	cpu.memory(&hff)=Asc(" ")
+	'EndIf
 
 	If MultiKey(SC_plus) Then ' increase emulation speed
 		opgoal+=500

@@ -94,7 +94,12 @@ Sub get_data
 			cpu.pc+=1
 		Case "IND" 'Indirect
 			indaddr = readmem(cpu.pc,2)
-			taddr = readmem(indaddr,2)
+			If LoByte(indaddr) = &hff Then 
+				taddr = readmem(indaddr,1)
+				taddr + = (readmem(indaddr - &hff,1) Shl 8)
+			Else
+				taddr = readmem(indaddr,2)
+			EndIf
 			cpu.pc+=2
 		Case "ZPX" 'Zero page X
 			taddr = readmem(cpu.pc) + cpu.X

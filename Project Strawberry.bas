@@ -47,7 +47,7 @@ Using fb
 #Include Once "Freeimage.bi" ' Freeimage library
 #Include Once "inc/freetofb.bi" 'Easily use Freeimage images in Freebasic
 #Include Once "zlib.bi"
-Declare Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As ULongInt ' for reading memory
+Declare Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As Ushort ' for reading memory
 Declare Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write a value to NES memory
 Declare Sub status 'print various status stuff to the screen
 Declare Sub initcpu 'initialize the 6502
@@ -298,7 +298,7 @@ Sub nmi
 	opHistory(0) = "NMI fired on " & totalops & " ops."
 End Sub
 
-Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As ULongInt
+Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As UShort
 	Select Case addr
 		Case &h2000 To &h3FFF
 			If addr = &h2002 Then cpu.memory(&h2002) And= 127
@@ -308,11 +308,12 @@ Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As ULon
 		Case &h4016
 			'controller stuff
 		Case Else
-			Dim As ULongInt Ptr suspicious_pointer
-			Dim As UByte tempmem(0 To 7)
+			Dim As UShort Ptr suspicious_pointer
+			Dim As UByte tempmem(0 To 1)
 			For q As UByte = 0 To numbytes-1
 				tempmem(q)=cpu.memory(addr+q)
 			Next
+			If addr = &hff Andalso numbytes = 2 Then tempmem(1) = cpu.memory(0)
 			suspicious_pointer=@tempmem(0)
 			readmem = *suspicious_pointer
 	End Select
@@ -482,8 +483,9 @@ Sub fail (ByVal op As String, ByVal expected As String, ByVal actual As String)
 	Print
 	Print "Taddr: " & taddr
 	Print "*Tdata: " & *tdata
-	Print Hex(cpu.ps)
-	Print Hex(cpu.oldps)
+	Print Hex(cpu.acc)
+	Print amode
+	Print cpu.memory(&h2ff)
 	Print "Paused. Press Space to resume or Escape to exit!"
 Do
 	Sleep 10
