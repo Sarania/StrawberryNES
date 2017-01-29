@@ -58,8 +58,10 @@ Declare Sub nmi
 Declare Sub write_the_log
 Declare Sub push_Framebuffer
 Declare Sub clear_framebuffer
+Declare Sub comparelog
+Declare Sub fail(ByVal op As String, ByVal expected As String, ByVal actual As String)
 Dim Shared As UByte debug, trace_done = 0
-Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=0
+Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=1
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
 Dim Shared As Single start, lastframetime,opsPerSecond, stepstart
 Dim Shared As Any Ptr strawberry
@@ -68,15 +70,27 @@ Dim Shared As Any Ptr framebuffer
 Dim Shared As uinteger masterPalette(64) = {&h545454, &h001E74, &h081090, &h300088, &h440064, &h5C0030, &h540400, &h3C1800, &h202A00, &h083A00, &h004000, &h003C00, &h00323C, &h000000, &h000000, &h000000, &h989698, &h084CC4, &h3032EC, &h5C1EE4, &h8814B0, &hA01464, &h982220, &h783C00, &h545A00, &h287200, &h087C00, &h007628, &h006678, &h000000, &h000000, &h000000, &hECEEEC, &h4C9AEC, &h787CEC, &hB062EC, &hE454EC, &hEC58B4, &hEC6A64, &hD48820, &hA0AA00, &h74C400, &h4CD020, &h38CC6C, &h38B4CC, &h3C3C3C, &h000000, &h000000, &hECEEEC, &hA8CCEC, &hBCBCEC, &hD4B2EC, &hECAEEC, &hECAED4, &hECB4B0, &hE4C490, &hCCD278, &hB4DE78, &hA8E290, &h98E2B4, &hA0D6E4, &hA0A2A0, &h000000, &h000000}
 Dim Shared As UByte button_counter
 Dim Shared As UByte button(0 To 7)
+'======================================================THESE VARS ARE FOR THE LOG COMPARISON===================================================
+Dim Shared As String curline
+Dim Shared As String opdata, opc
+Dim Shared As ULongInt nintcyc
+Dim Shared As UInteger nintsl
+Dim Shared As UByte logcomp = 1
+'==============================================================================================================================================
 Type cpus
 	'------------------------'
 	'   6502 Registers/MEM   '
 	'------------------------'
 	oldpc As UShort 'save pc for debug
+	oldsp As UByte 'save sp for debug
+	oldacc As UByte
+	oldx As UByte
+	oldy As UByte
 	acc As UByte 'accumulator
 	X As UByte 'X register
 	Y As UByte 'Y register
-	PS As UByte 'Processor status register, only updated in this byte for pushing and pulling it from the stack
+	PS As UByte 'Processor status register
+	oldps As UByte
 	'bit 7 S Sign
 	'bit 6 V Overflow
 	'bit 5 unused(always 1)
@@ -111,7 +125,7 @@ Type cpus
 	#Define clear_C cpu.ps = cpu.ps And 254 'clear carry flag
 
 	PC As UShort 'program counter
-	sp As UByte = &hFF 'stack pointer
+	sp As UByte = &hFD 'stack pointer
 	memory(0 To 65535) As UByte 'RAM
 	'nesReset As Integer 'reset vector
 End Type
@@ -119,7 +133,7 @@ End Type
 Type ppus
 	sprRAM (0 To &hFF) As UByte
 	vram(0 To &hFFFF) As ubyte
-	scanline As UInteger = -1
+	scanline As UInteger = 241
 	sprAddr As UShort
 	vrAddr As Uinteger
 	addrLatch As UByte
@@ -150,6 +164,7 @@ ReDim Shared As UByte rom(0 To 1)
 ReDim Shared As UByte prgROM(0 To 1)
 ReDim Shared As UByte chrROM(0 To 1)
 ReDim Shared As UByte prgRAM(0 To 1)
+Dim Shared As cpus nint'==============================================================================================
 Dim Shared cpu As cpus '6502 CPU
 Dim Shared ppu As ppus 'slightly less suspicious PPU
 Dim Shared header As headers
@@ -249,9 +264,10 @@ Sub initcpu 'initialize CPU and RAM
 	Clear_d
 	clear_c
 	clear_v
-	set_b
+	'set_b
+	clear_b
 	set_u
-	cpu.PS = &h34 'init status
+	cpu.PS = &h24 'init status
 	ppuctrl = 0 '00000000
 	ppumask = 0 '00000000
 	ppustatus = 160 '10100000
@@ -367,6 +383,11 @@ If emulatorMode = "6502" Then cpu.pc = &h0600 ' set pc to program start for simp
 start = Timer
 If logops = 1 Then Open "log.txt" For Output As #99
 Do
+	cpu.oldps = cpu.ps
+	cpu.oldsp = cpu.sp
+	cpu.oldacc = cpu.acc
+	cpu.oldx = cpu.X
+	cpu.oldy = cpu.y
 	opsPerSecond = totalops / (Timer-start)
 	'====================================REMOVE THIS======================================================
 	If emulatormode = "6502" Then cpu.memory(&hfe) = Rnd*255 ' random number generator for simple 6502 programs
@@ -376,6 +397,8 @@ Do
 	cpu.pc+=1
 	totalops+=1
 	decode_and_execute(cpu.memory(cpu.pc-1)) ' decode the binary located at the PC to opcode and address mode and then execute the instruction
+	clear_b '==========================================================HACKS
+	If logcomp = 1 Then comparelog '======================================================================
 	If ticks >=85 And emulatorMode <> "6502" Then
 		ppuLoop
 		ticks = 0
@@ -417,3 +440,54 @@ Do
 Loop While Not MultiKey(SC_ESCAPE)
 Close
 CAE
+
+Sub comparelog
+nint.pc = 0
+opdata = ""
+opc = ""
+nint.acc = 0
+nint.x = 0
+nint.y = 0
+nint.ps = 0
+nint.sp = 0
+nintcyc = 9
+nintsl = 0
+Line Input #31, curline
+nint.pc = CuInt("&h" & Left(curline,4))
+opdata = Right(Left(curline,16),12) 'deal with
+opc = Right(Left(curline,19),3)
+nint.acc = CUInt("&h" & Right(Left(curline,52),2))
+nint.x = CUInt("&h" & Right(Left(curline,57),2))
+nint.y = CUInt("&h" & Right(Left(curline,62),2))
+nint.ps = CUInt("&h" & Right(Left(curline,67),2))
+nint.sp = CUInt("&h" & Right(Left(curline,73),2))
+nintcyc = CUInt(Right(Left(curline,81),3))
+nintsl = CUInt(Right(curline,3))
+If nint.pc <> cpu.oldpc Then fail("CPU.PC", Str(Hex(nint.pc)), Str(Hex(cpu.oldpc)))
+If opc <> instruction Then fail("Decoder", opc, instruction)
+If nint.acc <> cpu.oldacc Then fail("CPU.ACC", Str(Hex(nint.acc)), Str(Hex(cpu.oldacc)))
+If nint.x <> cpu.oldx Then fail("CPU.X", Str(Hex(nint.x)), Str(Hex(cpu.oldx)))
+If nint.y <> cpu.oldy Then fail("CPU.Y", Str(Hex(nint.y)), Str(Hex(cpu.oldy)))
+If nint.ps <> cpu.oldps Then fail("CPU.PS", Str(Hex(nint.ps)), Str(Hex(cpu.oldps)))
+If nint.sp <> cpu.oldsp Then fail("CPU.sp", Str(Hex(nint.sp)), Str(Hex(cpu.oldsp)))
+End Sub
+
+Sub fail (ByVal op As String, ByVal expected As String, ByVal actual As String)
+	Cls
+	Print "Log comparison failed on op " & totalops
+	Print op & " was expected to be " & expected & " but was actually " & actual 
+	Print
+	Print "Full line of the log in question: "
+	Print curline
+	Print
+	Print "Taddr: " & taddr
+	Print "*Tdata: " & *tdata
+	Print Hex(cpu.ps)
+	Print Hex(cpu.oldps)
+	Print "Paused. Press Space to resume or Escape to exit!"
+Do
+	Sleep 10
+	If MultiKey(SC_ESCAPE) Then CAE
+Loop While Not MultiKey(SC_SPACE)
+While MultiKey(SC_SPACE):Sleep 10,1: wend
+End Sub

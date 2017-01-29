@@ -113,9 +113,9 @@ Sub get_data
 			tdata = @cpu.memory(taddr)
 			cpu.pc+=1
 		Case "INDY" 'indirectY
-			indaddr = readmem(cpu.pc) 
+			indaddr = readmem(cpu.pc)
 			taddr = readmem(indaddr,2)
-			taddr+=cpu.y 
+			taddr+=cpu.y
 			tdata = @cpu.memory(taddr)
 			cpu.pc+=1
 	End Select
@@ -133,7 +133,7 @@ Sub get_data
 		Case 8195
 			addrstr = "OAMADDR(0x2003)"
 		Case 8196
-		   addrstr = "OAMDATA(0x2004)"
+			addrstr = "OAMDATA(0x2004)"
 		Case 8197
 			addrstr = "PPUSCROLL(0x2005)"
 		Case 8198
@@ -143,7 +143,7 @@ Sub get_data
 		Case 16404
 			addrstr = "OAMDMA(0x4014)"
 		Case Else
-			addrstr = "0x" & Hex(taddr)		
+			addrstr = "0x" & Hex(taddr)
 	End Select
 	For i As Integer = 255 To 0 Step -1
 		opHistory(i) = opHistory(i-1)
@@ -153,13 +153,17 @@ Sub get_data
 End Sub
 Sub INS_ADC
 	'add with carry
-	Dim As Integer adctmp
+	Dim As uInteger adctmp
 	get_data
-	adctmp = (cpu.acc + *tdata + flag_c) And &hFF
-	If Bit(cpu.acc,7) <> Bit(adctmp,7) Then set_v Else clear_v
-	If Bit(cpu.acc,7) Then set_s Else clear_s
+	clear_v
+	If (cpu.acc Xor *tdata) And &h80 <> &h80 Then
+		If ((cpu.acc Xor adctmp) And &h80) = &h80 Then
+			set_v
+		End if
+	End If
+	If Bit(adctmp,7) Then set_s Else clear_s
 	If adctmp = 0 Then set_z Else clear_z
-	If adctmp < cpu.acc Then set_c Else clear_c
+	If adctmp > &hff Then set_c Else clear_c
 	cpu.acc = adctmp And &hFF
 End Sub
 
@@ -367,8 +371,8 @@ End Sub
 Sub INS_JSR
 	'jump subroutine
 	get_data
-	writemem(&h100+cpu.sp,LoByte(cpu.pc))
-	writemem(&h100+cpu.sp-1,HiByte(cpu.pc))
+	writemem(&h100+cpu.sp,HiByte(cpu.pc))
+	writemem(&h100+cpu.sp-1,LoByte(cpu.pc))
 	cpu.sp-=2
 	cpu.pc = taddr
 End Sub
@@ -426,6 +430,8 @@ Sub INS_PHA
 End Sub
 
 Sub INS_PHP
+	set_b
+	set_u
 	'push processor status to stack
 	writemem(&h100+cpu.sp,cpu.ps)
 	cpu.sp-=1
@@ -443,6 +449,7 @@ Sub INS_PLP
 	'pull processor status from stack
 	cpu.sp+=1
 	cpu.ps = readmem(&h100+cpu.sp)
+	set_u
 End Sub
 
 Sub INS_ROL
@@ -475,21 +482,17 @@ Sub INS_RTI
 	'return from interrupt
 	cpu.sp+=1
 	cpu.ps = readmem(&h100+cpu.sp)
-	cpu.sp+=1	
+	cpu.sp	+=1
 	cpu.pc = cpu.memory(&h100+cpu.sp)
-	cpu.sp+=1 
+	cpu.sp +=1
 	cpu.PC OR= (cpu.memory(&h100+cpu.sp)Shl 8)
 End Sub
 
 Sub INS_RTS
-	Dim suspicious_pointer As UShort Ptr
-	Dim suspicious_array(0 To 1) As UByte
 	cpu.sp+=1
-	suspicious_array(1) = readmem(&h100+cpu.sp)
+	cpu.pc = readmem(&h100+cpu. sp)
 	cpu.sp+=1
-	suspicious_array(0) = readmem(&h100+cpu.sp)
-	suspicious_pointer = @suspicious_array(0)
-	cpu.pc = *suspicious_pointer
+	cpu.pc Or= readmem(&h100+cpu.sp) shl 8
 End Sub
 
 Sub INS_SBC
