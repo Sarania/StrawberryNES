@@ -403,7 +403,7 @@ Do
 	decode_and_execute(cpu.memory(cpu.pc-1)) ' decode the binary located at the PC to opcode and address mode and then execute the instruction
 	clear_b '==========================================================HACKS
 	If logcomp = 1 Then comparelog '======================================================================
-	If ticks >=85 And emulatorMode <> "6502" Then
+	If ticks >=113 And emulatorMode <> "6502" Then
 		ppuLoop
 		ticks = 0
 	EndIf

@@ -70,9 +70,9 @@ Sub ProcessCurTile
 	Dim as uinteger pPalette = ppu.vram(&h3f00) + (ppu.vram(palette_address) Shl 8) + (ppu.vram(palette_address+1) Shl 16) + (ppu.vram(palette_address+2) Shl 24)
 	For zz As Integer = 0 To 7
 		pixel =((ppu.lbit Shr 7) and &h1) + (((ppu.ubit Shr 7) and &h1) Shl 1)
-		'Line framebuffer, (xoff+((ppu.curx*2)-2),yoff+((ppu.cury*2)-1))-(xoff+((ppu.curx*2)),yoff+((ppu.cury*2)-1)), masterpalette((pPalette Shr (pixel * 8) AND &hff))
-		'Line framebuffer, (xoff+((ppu.curx*2)-2),yoff+((ppu.cury*2)-2))-(xoff+((ppu.curx*2)),yoff+((ppu.cury*2)-2)), masterpalette((pPalette Shr (pixel * 8) AND &hff))
-		PSet framebuffer, (xoff+ppu.curx,yoff+ppu.cury),masterpalette((pPalette Shr (pixel * 8) AND &hff))
+		Line framebuffer, (xoff+((ppu.curx*2)-2),yoff+((ppu.cury*2)-1))-(xoff+((ppu.curx*2)),yoff+((ppu.cury*2)-1)), masterpalette((pPalette Shr (pixel * 8) AND &hff))
+		Line framebuffer, (xoff+((ppu.curx*2)-2),yoff+((ppu.cury*2)-2))-(xoff+((ppu.curx*2)),yoff+((ppu.cury*2)-2)), masterpalette((pPalette Shr (pixel * 8) AND &hff))
+		'PSet framebuffer, (xoff+ppu.curx,yoff+ppu.cury),masterpalette((pPalette Shr (pixel * 8) AND &hff))
 		ppu.curx+=1
 		ppu.lbit Shl = 1
 		ppu.ubit Shl = 1
@@ -124,18 +124,19 @@ Sub renderSprites
 			sprAddress = spr16Address
 			sprTileNumber = ppu.tempSPRram(spr,1) and &hFE ' mask out the low bit
 		EndIf
-		'lbit = ppu.vram((sprAddress) + (16*sprTilenumber))
-		'ubit = ppu.vram((sprAddress) + ((16*sprTilenumber)+8))
-		  lbit = ppu.vram((sprAddress+(ppu.scanline And sprHeight)) + (16*sprTilenumber))
-        ubit = ppu.vram((sprAddress+(ppu.scanline And sprheight)) + ((16*sprTilenumber)+8))
+		lbit = ppu.vram((sprAddress+((ppu.scanline - ppu.tempSPRram(spr,0)))) + (16*sprTilenumber)-1)
+		ubit = ppu.vram((sprAddress+((ppu.scanline - ppu.tempSPRram(spr,0)))) + ((16*sprTilenumber)+7))
 		Dim As UInteger paletteaddr = &h3F11 + (sprTilenumber * 4)
-      Dim As UInteger Ppalette = PPU.vram(&h3F00) + (PPU.vram(paletteaddr) shl 8) + (PPU.vram(paletteaddr + 1) shl 16) + (PPU.vram(paletteaddr + 2) shl 24)
+		Dim As UInteger Ppalette = PPU.vram(&h3F00) + (PPU.vram(paletteaddr) shl 8) + (PPU.vram(paletteaddr + 1) shl 16) + (PPU.vram(paletteaddr + 2) shl 24)
 		For zz As UByte = 0 To 7
-      pixel =((lbit Shr 7) and &h1) + (((ubit Shr 7) and &h1) Shl 1)
-      lbit Shl = 1
-		ubit Shl = 1
-		PSet framebuffer, (xoff+(ppu.tempSPRram(spr,3))+zz,yoff+ppu.scanline),RGB(pixel*85,pixel*85,pixel*85)
-		Next
+			pixel =((lbit Shr 7) and &h1) + (((ubit Shr 7) and &h1) Shl 1) 
+			lbit Shl = 1
+			ubit Shl = 1
+			If pixel > 0 Then
+				Line framebuffer, (xoff+(((ppu.tempSPRram(spr,3)+zz)*2)-2),yoff+((ppu.scanline*2)-1))-(xoff+(((ppu.tempSPRram(spr,3)+zz)*2)),yoff+((ppu.scanline*2)-1)), RGB(pixel*85,pixel*85,pixel*85)
+				Line framebuffer, (xoff+(((ppu.tempSPRram(spr,3)+zz)*2)-2),yoff+((ppu.scanline*2)-2))-(xoff+(((ppu.tempSPRram(spr,3)+zz)*2)),yoff+((ppu.scanline*2)-2)), RGB(pixel*85,pixel*85,pixel*85)
+			End If
+			Next
 	Next
 	For spr As UByte = 0 To 7
 		For sprspr As UByte = 0 To 3
