@@ -251,6 +251,7 @@ Sub INS_BRK
 	cpu.sp -=1
 	set_b
 	set_i
+	set_u
 	Dim suspicious_pointer As UShort Ptr
 	Dim suspicious_array(0 To 1) As UByte
 	suspicious_array(0) = readmem(&HFFFE)

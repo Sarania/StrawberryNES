@@ -132,6 +132,7 @@ End Type
 
 Type ppus
 	sprRAM (0 To &hFF) As UByte
+	tempSPRram (0 To 7, 0 To 3) As ubyte
 	vram(0 To &hFFFF) As ubyte
 	scanline As UInteger = 241
 	sprAddr As UShort
@@ -181,7 +182,7 @@ Dim Shared header As headers
 #Define  PPUCTRL_P        ( ppuctrl And 64 ) / 64
 #Define  PPUCTRL_H        ( ppuctrl And 32 ) / 32
 #Define  PPUCTRL_B        (( ppuctrl And 16 ) / 16) * &h1000
-#Define  PPUCTRL_S        ( PPUCTRL And 8 ) / 8
+#Define  PPUCTRL_S        (( PPUCTRL And 8 ) / 8) * &h1000
 #Define  PPUCTRL_I        (( PPUCTRL And 4 ) / 4)
 #Define  PPUCTRL_NN      (( PPUCTRL And 3 ) * &h400 ) + &h2000
 #Define PPUMASK_INTENSIFY_B    ( PPUMASK And 128 ) / 128
@@ -326,7 +327,9 @@ Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write memory
 		Select Case addr
 			Case &h2000 To &h3FFF
 				writePPUreg(addr And &h2007, value)
-			Case &h4000 To &h4015, &h4017
+			Case &h4014
+			writePPUreg(&H4014,value)
+			'Case &h4000 To &h4015, &h4017
 				'apu stuff
 			Case &h4016
 				PadWrite
@@ -471,6 +474,7 @@ If nint.x <> cpu.oldx Then fail("CPU.X", Str(Hex(nint.x)), Str(Hex(cpu.oldx)))
 If nint.y <> cpu.oldy Then fail("CPU.Y", Str(Hex(nint.y)), Str(Hex(cpu.oldy)))
 If nint.ps <> cpu.oldps Then fail("CPU.PS", Str(Hex(nint.ps)), Str(Hex(cpu.oldps)))
 If nint.sp <> cpu.oldsp Then fail("CPU.sp", Str(Hex(nint.sp)), Str(Hex(cpu.oldsp)))
+'If nintsl <> ppu.scanline Then fail("scanline", Str(nintsl), Str(ppu.scanline))
 End Sub
 
 Sub fail (ByVal op As String, ByVal expected As String, ByVal actual As String)
