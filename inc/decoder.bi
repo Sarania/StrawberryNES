@@ -816,18 +816,17 @@ Sub decode_and_execute(ByVal opc As UByte)
 		Case Else
 			instruction = "Decoder error! " & Str(opc)
 			amode = "Decoder error!"
-
 	End Select
 	#ifdef debugmode
 	'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
-	If trace_done = 0 Then
-	For i As Integer = 255 To 0 Step -1
-		opHistory(i) = opHistory(i-1)
-	Next
+	'If trace_done = 0 Then
+	'For i As Integer = 255 To 0 Step -1
+	'	opHistory(i) = opHistory(i-1)
+	'Next
 
-	opHistory(0) = instruction & "(" & amode & ") "
-	End If
-	trace_done=0
+	'opHistory(0) = instruction & "(" & amode & ") "
+	'End If
+	'trace_done=0
 	'==================================================================================================================================================================
 	#EndIf
 End Sub

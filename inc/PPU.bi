@@ -70,8 +70,10 @@ Sub ProcessCurTile
 	Dim as uinteger pPalette = ppu.vram(&h3f00) + (ppu.vram(palette_address) Shl 8) + (ppu.vram(palette_address+1) Shl 16) + (ppu.vram(palette_address+2) Shl 24)
 	For zz As Integer = 0 To 7
 		pixel =((ppu.lbit Shr 7) and &h1) + (((ppu.ubit Shr 7) and &h1) Shl 1)
+		If pixel Then
 		Line framebuffer, (xoff+((ppu.curx*2)-2),yoff+((ppu.cury*2)-1))-(xoff+((ppu.curx*2)),yoff+((ppu.cury*2)-1)), masterpalette((pPalette Shr (pixel * 8) AND &hff))
 		Line framebuffer, (xoff+((ppu.curx*2)-2),yoff+((ppu.cury*2)-2))-(xoff+((ppu.curx*2)),yoff+((ppu.cury*2)-2)), masterpalette((pPalette Shr (pixel * 8) AND &hff))
+	   End if
 		ppu.curx+=1
 		ppu.lbit Shl = 1
 		ppu.ubit Shl = 1

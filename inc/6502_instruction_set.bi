@@ -152,11 +152,11 @@ Sub get_data
 	End Select
 	#ifdef debugmode
 	'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
-	For i As Integer = 255 To 0 Step -1
-		opHistory(i) = opHistory(i-1)
-	Next
-	opHistory(0) = instruction & "(" & amode & ") " & " Addr: " & addrstr & " Data:" & *tdata
-	trace_done = 1
+	'For i As Integer = 255 To 0 Step -1
+	'	opHistory(i) = opHistory(i-1)
+	'Next
+	'opHistory(0) = instruction & "(" & amode & ") " & " Addr: " & addrstr & " Data:" & *tdata
+	'trace_done = 1
 	'==================================================================================================================================================================
 	#EndIf
 End Sub
