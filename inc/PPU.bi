@@ -107,6 +107,9 @@ Sub renderSprites
 	'for 8x8 tile number is all of byte 1, for 8, 16 its the 7 MSB
 	#Define spr16Address (ppu.tempSPRram(spr,1) And 1) * &h1000
 	#Define palAddress (ppu.tempSPRram(spr,2) And 3)
+	#Define flipY (ppu.tempSPRram(spr,2) And 128)
+	#Define flipX (ppu.tempSPRram(spr,2) And 64)
+	Dim As Byte zstart, zstop, zstep, zoff, zyoff
 	Dim As UByte pixel
 	Dim As UInteger sprTileNumber
 	Dim As UInteger xoff, yoff
@@ -125,19 +128,35 @@ Sub renderSprites
 			sprAddress = spr16Address
 			sprTileNumber = ppu.tempSPRram(spr,1) and &hFE ' mask out the low bit
 		EndIf
-		lbit = ppu.vram((sprAddress+((ppu.scanline - ppu.tempSPRram(spr,0)))) + (16*sprTilenumber)-1)
-		ubit = ppu.vram((sprAddress+((ppu.scanline - ppu.tempSPRram(spr,0)))) + ((16*sprTilenumber)+7))
+		If flipY Then
+			lbit = ppu.vram((sprAddress+((7-(ppu.scanline - ppu.tempSPRram(spr,0))))) + (16*sprTilenumber)+1)
+			ubit = ppu.vram((sprAddress+((7-(ppu.scanline - ppu.tempSPRram(spr,0))))) + ((16*sprTilenumber)+9))
+		Else
+			lbit = ppu.vram((sprAddress+((ppu.scanline - ppu.tempSPRram(spr,0)))) + (16*sprTilenumber)-1)
+			ubit = ppu.vram((sprAddress+((ppu.scanline - ppu.tempSPRram(spr,0)))) + ((16*sprTilenumber)+7))
+		End If
 		Dim As UInteger paletteaddr = &h3F11 + (palAddress * 4)
 		Dim As UInteger Ppalette = PPU.vram(&h3F00) + (PPU.vram(paletteaddr) shl 8) + (PPU.vram(paletteaddr + 1) shl 16) + (PPU.vram(paletteaddr + 2) shl 24)
-		For zz As UByte = 0 To 7
-			pixel =((lbit Shr 7) and &h1) + (((ubit Shr 7) and &h1) Shl 1) 
+		If flipX Then
+			zstart = 7
+			zstop = 0
+			zstep = -1
+			zoff = -1
+		Else
+			zstart = 0
+			zstop = 7
+			zstep = 1
+			zoff = 0
+		EndIf
+		For zz As byte = zstart To zstop Step zstep
+			pixel =((lbit Shr 7) and &h1) + (((ubit Shr 7) and &h1) Shl 1)
 			lbit Shl = 1
 			ubit Shl = 1
 			If pixel > 0 Then
-				Line framebuffer, (xoff+(((ppu.tempSPRram(spr,3)+zz)*2)-2),yoff+((ppu.scanline*2)-1))-(xoff+(((ppu.tempSPRram(spr,3)+zz)*2)),yoff+((ppu.scanline*2)-1)), masterpalette((pPalette Shr (pixel * 8) AND &hff))
-				Line framebuffer, (xoff+(((ppu.tempSPRram(spr,3)+zz)*2)-2),yoff+((ppu.scanline*2)-2))-(xoff+(((ppu.tempSPRram(spr,3)+zz)*2)),yoff+((ppu.scanline*2)-2)), masterpalette((pPalette Shr (pixel * 8) AND &hff))
+				Line framebuffer, (zoff+xoff+(((ppu.tempSPRram(spr,3)+zz)*2)-2),yoff+((ppu.scanline*2)-1))-(zoff+xoff+(((ppu.tempSPRram(spr,3)+zz)*2)),yoff+((ppu.scanline*2)-1)), masterpalette((pPalette Shr (pixel * 8) AND &hff))
+				Line framebuffer, (zoff+xoff+(((ppu.tempSPRram(spr,3)+zz)*2)-2),yoff+((ppu.scanline*2)-2))-(zoff+xoff+(((ppu.tempSPRram(spr,3)+zz)*2)),yoff+((ppu.scanline*2)-2)), masterpalette((pPalette Shr (pixel * 8) AND &hff))
 			End If
-			Next
+		Next
 	Next
 	For spr As UByte = 0 To 7
 		For sprspr As UByte = 0 To 3

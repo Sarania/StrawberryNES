@@ -6,10 +6,10 @@ Sub loadMapper0
 			For i As Integer = 0 To (header.prgSize*16*1024)-1
 				cpu.memory(&hC000+i) = prgRom(i)
 			Next
+		End if
 		For i as Integer = 0 To (header.chrSize*8*1024)-1
 				ppu.VRAM(i) = chrRom(i)
-			Next
-		End If
+		Next
 End Sub
 Sub loadMapper1
 	Dim As UInteger loadOffset
