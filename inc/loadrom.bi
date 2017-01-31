@@ -118,11 +118,14 @@ Sub loadROM
 		EndIf
 		set_i
 		cpu.pc = (cpu.memory(&hFFFD) Shl 8) Or cpu.memory(&hFFFC)	
-
+#ifdef debugmode
+'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
 	If shpname = "autotest.nes" Then logcomp = 1 Else logcomp = 0
 	If logcomp = 1 Then
 		Dim dummy As String
 		Open "nestest.log" For Input As #31
 		cpu.pc = &HC000
-	End if
+	End If
+'==================================================================================================================================================================
+#EndIf
 End Sub

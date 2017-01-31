@@ -94,7 +94,7 @@ Sub get_data
 			cpu.pc+=1
 		Case "IND" 'Indirect
 			indaddr = readmem(cpu.pc,2)
-			If LoByte(indaddr) = &hff Then 
+			If LoByte(indaddr) = &hff Then
 				taddr = readmem(indaddr,1)
 				taddr + = (readmem(indaddr - &hff,1) Shl 8)
 			Else
@@ -116,7 +116,7 @@ Sub get_data
 			indaddr = (indaddr + cpu.X) And &hFF
 			taddr = readmem(indaddr,2)
 			tdata = @cpu.memory(taddr)
-         cpu.pc+=1
+			cpu.pc+=1
 		Case "INDY" 'indirectY
 			indaddr = readmem(cpu.pc)
 			taddr = readmem(indaddr,2)
@@ -150,17 +150,21 @@ Sub get_data
 		Case Else
 			addrstr = "0x" & Hex(taddr)
 	End Select
+	#ifdef debugmode
+	'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
 	For i As Integer = 255 To 0 Step -1
 		opHistory(i) = opHistory(i-1)
 	Next
 	opHistory(0) = instruction & "(" & amode & ") " & " Addr: " & addrstr & " Data:" & *tdata
 	trace_done = 1
+	'==================================================================================================================================================================
+	#EndIf
 End Sub
 Sub INS_ADC
 	'add with carry
 	Dim As uInteger adctmp
 	get_data
-		Dim As UByte adcdata = CUByte(*tdata)
+	Dim As UByte adcdata = CUByte(*tdata)
 	adctmp = (cpu.acc + cubyte(adcdata) + flag_c)
 	clear_v
 	If ((cpu.acc Xor adcdata) And &h80) <> &h80 Then
@@ -377,14 +381,14 @@ Sub INS_JMP
 End Sub
 
 Sub INS_JSR
-'jump subroutine
-cpu.pc += 1
-writemem(&h100+cpu.sp,HiByte(cpu.pc))
-writemem(&h100+cpu.sp-1,LoByte(cpu.pc))
-cpu.pc -= 1
-get_data
-cpu.sp-=2
-cpu.pc = taddr
+	'jump subroutine
+	cpu.pc += 1
+	writemem(&h100+cpu.sp,HiByte(cpu.pc))
+	writemem(&h100+cpu.sp-1,LoByte(cpu.pc))
+	cpu.pc -= 1
+	get_data
+	cpu.sp-=2
+	cpu.pc = taddr
 End Sub
 
 Sub INS_LDA
@@ -417,7 +421,7 @@ Sub INS_LSR
 	If Bit(*tdata,0) Then set_c Else clear_c
 	*tdata Shr = 1
 	*tdata And = &h7f
-	 clear_s
+	clear_s
 	If *tdata = 0 Then set_z Else clear_z
 End Sub
 

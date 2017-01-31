@@ -38,6 +38,7 @@ This document last updated at: 19:21 CST 3/28/2014
 
 Copyright 2014 Blyss Sarania
 '/
+#Define debugmode
 Randomize Timer
 #Include Once "fbgfx.bi"
 Using fb
@@ -55,11 +56,20 @@ Declare Sub loadROM 'load a ROM in to memory
 Declare Sub CAE 'Cleanup and exit
 Declare Sub loadini 'Load the ini file
 Declare Sub nmi
+#ifdef debugmode
+'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
+Dim Shared As String curline
+Dim Shared As String opdata, opc
+Dim Shared As ULongInt nintcyc
+Dim Shared As UInteger nintsl
+Dim Shared As UByte logcomp = 1
 Declare Sub write_the_log
-Declare Sub push_Framebuffer
-Declare Sub clear_framebuffer
 Declare Sub comparelog
 Declare Sub fail(ByVal op As String, ByVal expected As String, ByVal actual As String)
+'==================================================================================================================================================================
+#EndIf
+Declare Sub push_Framebuffer
+Declare Sub clear_framebuffer
 Dim Shared As UByte debug, mapper, trace_done = 0
 Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=0
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
@@ -68,45 +78,36 @@ Dim Shared As Any Ptr strawberry
 Dim Shared As UInteger status_timer, vblanks
 Dim Shared As Any Ptr framebuffer
 Dim Shared As uinteger masterPalette(64) = {&h545454, &h001E74, &h081090, &h300088, &h440064, &h5C0030, &h540400, &h3C1800, &h202A00, &h083A00, &h004000, &h003C00, &h00323C, &h000000, &h000000, &h000000, &h989698, &h084CC4, &h3032EC, &h5C1EE4, &h8814B0, &hA01464, &h982220, &h783C00, &h545A00, &h287200, &h087C00, &h007628, &h006678, &h000000, &h000000, &h000000, &hECEEEC, &h4C9AEC, &h787CEC, &hB062EC, &hE454EC, &hEC58B4, &hEC6A64, &hD48820, &hA0AA00, &h74C400, &h4CD020, &h38CC6C, &h38B4CC, &h3C3C3C, &h000000, &h000000, &hECEEEC, &hA8CCEC, &hBCBCEC, &hD4B2EC, &hECAEEC, &hECAED4, &hECB4B0, &hE4C490, &hCCD278, &hB4DE78, &hA8E290, &h98E2B4, &hA0D6E4, &hA0A2A0, &h000000, &h000000}
-Dim Shared As UByte button_counter
-Dim Shared As UByte button(0 To 7)
-'======================================================THESE VARS ARE FOR THE LOG COMPARISON===================================================
-Dim Shared As String curline
-Dim Shared As String opdata, opc
-Dim Shared As ULongInt nintcyc
-Dim Shared As UInteger nintsl
-Dim Shared As UByte logcomp = 1
-'==============================================================================================================================================
+Dim Shared As UByte button_counter, button(0 To 7)
+
+
 Type cpus
-	'------------------------'
-	'   6502 Registers/MEM   '
-	'------------------------'
+	'---------------------------'
+	'   6502 Registers/MEM etc  '
+	'---------------------------'
+	#Ifdef debugmode
+	'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
 	oldpc As UShort 'save pc for debug
 	oldsp As UByte 'save sp for debug
 	oldacc As UByte
 	oldx As UByte
 	oldy As UByte
+	oldps As UByte
+	'==================================================================================================================================================================
+	#EndIf
 	acc As UByte 'accumulator
 	X As UByte 'X register
 	Y As UByte 'Y register
 	PS As UByte 'Processor status register
-	oldps As UByte
-	'bit 7 S Sign
-	'bit 6 V Overflow
-	'bit 5 unused(always 1)
-	'bit 4 B Break
-	'bit 3 D Decimal
-	'bit 2 I Interrupt
-	'bit 1 Z Zero
-	'bit 0 C Carry
-	#define  Flag_S         ( cpu.ps And 128 ) / 128 'Sign flag
-	#define  Flag_V         ( cpu.ps And 64 ) / 64 'Overflow flag
-	#define  Flag_U         ( cpu.ps And 32 ) / 32 'Useless flag
-	#define  Flag_B         ( cpu.ps And 16 ) / 16 'Break flag
-	#define  Flag_D         ( cpu.ps And 8 ) / 8 'Decimal flag
-	#define  Flag_I         ( cpu.ps And 4 ) / 4 'Interrupt flag
-	#define  Flag_Z         ( cpu.ps And 2 ) / 2 'Zero flag
-	#define  Flag_C         ( cpu.ps And 1 ) 'Carry flag
+	'======These macros are for manipulating the flags in the 6502 processor status register. They are NOT part of the UDT(i.e. don't reference them with cpu.=========
+	#define  Flag_S         ( cpu.ps And 128 ) / 128 'Sign flag bit 7
+	#define  Flag_V         ( cpu.ps And 64 ) / 64 'Overflow flag bit 6
+	#define  Flag_U         ( cpu.ps And 32 ) / 32 'Useless flag bit 5
+	#define  Flag_B         ( cpu.ps And 16 ) / 16 'Break flag bit 4
+	#define  Flag_D         ( cpu.ps And 8 ) / 8 'Decimal flag bit 3
+	#define  Flag_I         ( cpu.ps And 4 ) / 4 'Interrupt flag bit 2
+	#define  Flag_Z         ( cpu.ps And 2 ) / 2 'Zero flag bit 1
+	#define  Flag_C         ( cpu.ps And 1 ) 'Carry flag bit 0
 	#Define set_S cpu.ps = cpu.ps Or 128 'set sign flag
 	#Define set_V cpu.ps = cpu.ps Or 64  'set overflow flag
 	#Define set_U cpu.ps = cpu.ps Or 32  'set useless flag
@@ -123,14 +124,15 @@ Type cpus
 	#Define clear_I cpu.ps = cpu.ps And 251 'clear interrupt flag
 	#Define clear_Z cpu.ps = cpu.ps And 253 'clear zero flag
 	#Define clear_C cpu.ps = cpu.ps And 254 'clear carry flag
-
 	PC As UShort 'program counter
 	sp As UByte = &hFD 'stack pointer
 	memory(0 To 65535) As UByte 'RAM
-	'nesReset As Integer 'reset vector
 End Type
 
 Type ppus
+	'----------------------------'
+	'   2C02 Registers/MEM etc   '
+	'----------------------------'
 	sprRAM (0 To &hFF) As UByte
 	tempSPRram (0 To 7, 0 To 3) As ubyte
 	vram(0 To &hFFFF) As ubyte
@@ -150,6 +152,9 @@ Type ppus
 End Type
 
 Type headers
+	'------------------------'
+	'      iNES Header       '
+	'------------------------'
 	signature(0 To 3) As Byte
 	prgSize As UByte 'in 16KB pages
 	chrSize As UByte 'in 8KB pages
@@ -161,14 +166,21 @@ Type headers
 	zeros (0 To 4) As UByte
 End Type
 
-ReDim Shared As UByte rom(0 To 1)
+ReDim Shared As UByte rom(0 To 1) 'Here we are preparing these dynamic arrays which will later be resized to the exact size they need
 ReDim Shared As UByte prgROM(0 To 1)
 ReDim Shared As UByte chrROM(0 To 1)
 ReDim Shared As UByte prgRAM(0 To 1)
-Dim Shared As cpus nint'==============================================================================================
+
+#Ifdef debugmode
+'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
+Dim Shared As cpus nint
+'==================================================================================================================================================================
+#EndIf
+
 Dim Shared cpu As cpus '6502 CPU
-Dim Shared ppu As ppus 'slightly less suspicious PPU
-Dim Shared header As headers
+Dim Shared ppu As ppus 'slightly less suspicious PPU (but still pretty suspicious)
+Dim Shared header As headers 'iNES header
+'================================================================PPU related macros================================================================================
 #define PPUCTRL cpu.memory(&h2000)
 #Define PPUMASK cpu.memory(&h2001)
 #Define PPUSTATUS cpu.memory(&h2002)
@@ -196,28 +208,31 @@ Dim Shared header As headers
 #Define  PPUSTATUS_V     ( PPUSTATUS And 128 ) / 128
 #Define  PPUSTATUS_S     ( PPUSTATUS And 64 ) / 64
 #Define  PPUSTATUS_O     ( PPUSTATUS And 32 ) / 32
+'==================================================================================================================================================================
 #Include Once "inc/loadrom.bi"
-loadini ' need to load it here because of font stuff
+loadini
 ChDir ExePath
 ChDir("..")
-#Include Once "inc/mapper.bi"
+#Include Once "inc/mapper.bi" 'mapper loading and bank switching
 #Include Once "inc/misc.bi" 'misc stuff
-#Include Once "inc/Controller.bi"
-#Include Once "inc/ppu.bi" 'PPU
+#Include Once "inc/Controller.bi" 'Pad related functions and stuff
+#Include Once "inc/ppu.bi" 'PPU related functions and stuff
 #Include Once "inc/6502_instruction_set.bi" ' contains the instruction set
 #Include Once "inc/decoder.bi" ' decodes hex opcodes to asm
 emulatorMode = "6502"
 lastframetime = Timer
-version = "0.60 alpha"
+version = "0.70 alpha"
 debug = 1
 opstoskip = 1
 nextskip = 1
 
-/'==============================================================================
-                                       Subroutines
-================================================================================'/
+/'=================================================================================================================================================================
+                                                                            Subroutines
+==================================================================================================================================================================='/
 
-Sub status
+Sub status 'This sub prints the status of various things to the screen
+	'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
+	#Ifdef debugmode
 	Draw String framebuffer, (0,0), "Emulator mode: " & emulatorMode
 	Draw String framebuffer, (0,10), "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
 	Draw String framebuffer, (0,20), "Total ops: " & totalops & " | Stepping by: " & opstoskip
@@ -237,36 +252,37 @@ Sub status
 	For q As UByte = 1 To 60
 		Draw String framebuffer, (0,150 + (q*10)), opHistory(q)
 	Next
+	#EndIf
+	'==================================================================================================================================================================
 	Put framebuffer, (screenx-300,6),strawberry, Alpha
 	Draw String framebuffer, (screenx - 250,60), "Version " & version
 	Draw String framebuffer, (screenx - 270, 70), "Blyss Sarania & Nobbs66"
 	Draw String framebuffer, (screenx - 210,80), Format(vblanks / (Timer-start),"0.00") & " fps"
 End Sub
 
-Sub clear_framebuffer
+Sub clear_framebuffer 'Just clears the main framebuffer
 	For q As UInteger = 0 To screeny
 		Line framebuffer, (0,q)-(screenx,q), 0
 	Next
 End Sub
 
-Sub push_framebuffer
+Sub push_framebuffer 'Outputs the main framebuffer to the screen
 	status
 	Put(0,0),framebuffer,PSet
 	clear_framebuffer
 End Sub
+
 Sub initcpu 'initialize CPU and RAM
 	For i As Integer = 0 To 65535
 		cpu.memory(i) = 0
 		ppu.vram(i) = 0
 	Next
-
 	clear_s
 	clear_z
 	set_i
 	Clear_d
 	clear_c
 	clear_v
-	'set_b
 	clear_b
 	set_u
 	cpu.PS = &h24 'init status
@@ -279,14 +295,13 @@ Sub initcpu 'initialize CPU and RAM
 	ppudata = 0 '00000000
 End Sub
 
-Sub nmi
+Sub nmi 'Non maskable interrupt
 	writemem((cpu.sp+&h100),(cpu.pc Shr 8))
 	cpu.sp -=1
 	writemem((cpu.sp+&h100), (cpu.pc And &hff))
 	cpu.sp -=1
 	writemem(cpu.sp+&h100,cpu.ps)
 	cpu.sp -=1
-	'set_i
 	Dim suspicious_pointer As UShort Ptr
 	Dim suspicious_array(0 To 1) As UByte
 	suspicious_array(0) = readmem(&HFFFA)
@@ -329,7 +344,7 @@ Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write memory
 			Case &h2000 To &h3FFF
 				writePPUreg(addr And &h2007, value)
 			Case &h4014
-				writePPUreg(&H4014,value)	
+				writePPUreg(&H4014,value)
 			Case &h4000 To &h4015, &h4017
 				'apu stuff
 			Case &h4016
@@ -360,6 +375,67 @@ Sub loadini 'load the ini. Duh.
 	Close #f
 End Sub
 
+Sub CAE
+	If strawberry Then ImageDestroy(Strawberry)
+	Close
+	End
+End Sub
+
+'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
+#Ifdef debugmode
+Sub comparelog
+	nint.pc = 0
+	opdata = ""
+	opc = ""
+	nint.acc = 0
+	nint.x = 0
+	nint.y = 0
+	nint.ps = 0
+	nint.sp = 0
+	nintcyc = 9
+	nintsl = 0
+	Line Input #31, curline
+	nint.pc = CuInt("&h" & Left(curline,4))
+	opdata = Right(Left(curline,16),12) 'deal with
+	opc = Right(Left(curline,19),3)
+	nint.acc = CUInt("&h" & Right(Left(curline,52),2))
+	nint.x = CUInt("&h" & Right(Left(curline,57),2))
+	nint.y = CUInt("&h" & Right(Left(curline,62),2))
+	nint.ps = CUInt("&h" & Right(Left(curline,67),2))
+	nint.sp = CUInt("&h" & Right(Left(curline,73),2))
+	nintcyc = CUInt(Right(Left(curline,81),3))
+	nintsl = CUInt(Right(curline,3))
+	If nint.pc <> cpu.oldpc Then fail("CPU.PC", Str(Hex(nint.pc)), Str(Hex(cpu.oldpc)))
+	If opc <> instruction Then fail("Decoder", opc, instruction)
+	If nint.acc <> cpu.oldacc Then fail("CPU.ACC", Str(Hex(nint.acc)), Str(Hex(cpu.oldacc)))
+	If nint.x <> cpu.oldx Then fail("CPU.X", Str(Hex(nint.x)), Str(Hex(cpu.oldx)))
+	If nint.y <> cpu.oldy Then fail("CPU.Y", Str(Hex(nint.y)), Str(Hex(cpu.oldy)))
+	If nint.ps <> cpu.oldps Then fail("CPU.PS", Str(Hex(nint.ps)), Str(Hex(cpu.oldps)))
+	If nint.sp <> cpu.oldsp Then fail("CPU.sp", Str(Hex(nint.sp)), Str(Hex(cpu.oldsp)))
+	'If nintsl <> ppu.scanline Then fail("scanline", Str(nintsl), Str(ppu.scanline))
+End Sub
+
+Sub fail (ByVal op As String, ByVal expected As String, ByVal actual As String)
+	Cls
+	Print "Log comparison failed on op " & totalops
+	Print op & " was expected to be " & expected & " but was actually " & actual
+	Print
+	Print "Full line of the log in question: "
+	Print curline
+	Print
+	Print "Taddr: " & taddr
+	Print "*Tdata: " & *tdata
+	Print Hex(cpu.acc)
+	Print amode
+	Print cpu.memory(&h2ff)
+	Print "Paused. Press Space to resume or Escape to exit!"
+	Do
+		Sleep 10
+		If MultiKey(SC_ESCAPE) Then CAE
+	Loop While Not MultiKey(SC_SPACE)
+	While MultiKey(SC_SPACE):Sleep 10,1: wend
+End Sub
+
 Sub write_the_log
 	Print #99, "Op number: " & totalops
 	Print #99, ophistory(0)
@@ -371,47 +447,54 @@ Sub write_the_log
 	Print #99, "-----------------"
 	Print #99, "----------------------------------------------------------------------------------------------------------------"
 End Sub
+#EndIf
+'==================================================================================================================================================================
 
-Sub CAE
-	If strawberry Then ImageDestroy(Strawberry)
-	Close
-	End
-End Sub
+/'=================================================================================================================================================================
+                                                                End subroutines
+==================================================================================================================================================================='/
 
-/'==============================================================================
-                                       End subroutines
-================================================================================'/
+/'=================================================================================================================================================================
+                                                                 Main program
+==================================================================================================================================================================='/
 ScreenRes screenx,screeny,32,2
 framebuffer = ImageCreate(screenx,screeny,RGB(0,0,0))
 strawberry = freeimage_load_fb(CurDir & "/Res/SBNES.png", TRUE) ' load cute strawberry :)
-initcpu
-loadROM ' loadfile into ROM and cpu memory
+initcpu 'initialize the 6502 and 2C02
+loadROM 'load file into ROM and cpu memory
 Cls
-If emulatorMode = "6502" Then cpu.pc = &h0600 ' set pc to program start for simple 6502 stuff
+If emulatorMode = "6502" Then cpu.pc = &h0600 'set pc to program start for simple 6502 stuff
 start = Timer
+
+#Ifdef debugmode
 If logops = 1 Then Open "log.txt" For Output As #99
+#EndIf
+
 Do
+	'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
+	#Ifdef debugmode
 	cpu.oldps = cpu.ps
 	cpu.oldsp = cpu.sp
 	cpu.oldacc = cpu.acc
 	cpu.oldx = cpu.X
 	cpu.oldy = cpu.y
+	cpu.oldpc = cpu.pc 'this is for storing debug information
 	opsPerSecond = totalops / (Timer-start)
+	#EndIf
+	'==================================================================================================================================================================
 	'====================================REMOVE THIS======================================================
 	If emulatormode = "6502" Then cpu.memory(&hfe) = Rnd*255 ' random number generator for simple 6502 programs
 	'====================================REMOVE THIS======================================================
 	keycheck
-	cpu.oldpc = cpu.pc 'this is for storing debug information
 	cpu.pc+=1
 	totalops+=1
 	decode_and_execute(cpu.memory(cpu.pc-1)) ' decode the binary located at the PC to opcode and address mode and then execute the instruction
-	clear_b '==========================================================HACKS
-	If logcomp = 1 Then comparelog '======================================================================
+	clear_b '==========================================================HACKS==========================================================================================
 	If ticks >=113 And emulatorMode <> "6502" Then
 		ppuLoop
 		ticks = 0
 	EndIf
-	nextskip-=1
+	#Ifdef debugmode
 	If debug = 1 And nextskip = 0 Then
 		stepstart = Timer
 		nextskip = opstoskip
@@ -436,68 +519,19 @@ Do
 		start += (Timer-stepstart)
 		If start > Timer Then start = Timer
 		push_framebuffer
-	End if
+	End If
 	status_timer+=1
 	If status_timer >= OpsPerSecond/20 And emulatorMode = "6502" Then
 		simplegraphics
 		push_framebuffer
 		status_timer = 0
 	End If
-	If opsPerSecond > opgoal Then Sleep 10
 	If logops = 1 Then write_the_log
+	#EndIf
+	'==================================================================================================================================================================
+	If opsPerSecond > opgoal Then Sleep 10
 Loop While Not MultiKey(SC_ESCAPE)
 Close
 CAE
 
-Sub comparelog
-nint.pc = 0
-opdata = ""
-opc = ""
-nint.acc = 0
-nint.x = 0
-nint.y = 0
-nint.ps = 0
-nint.sp = 0
-nintcyc = 9
-nintsl = 0
-Line Input #31, curline
-nint.pc = CuInt("&h" & Left(curline,4))
-opdata = Right(Left(curline,16),12) 'deal with
-opc = Right(Left(curline,19),3)
-nint.acc = CUInt("&h" & Right(Left(curline,52),2))
-nint.x = CUInt("&h" & Right(Left(curline,57),2))
-nint.y = CUInt("&h" & Right(Left(curline,62),2))
-nint.ps = CUInt("&h" & Right(Left(curline,67),2))
-nint.sp = CUInt("&h" & Right(Left(curline,73),2))
-nintcyc = CUInt(Right(Left(curline,81),3))
-nintsl = CUInt(Right(curline,3))
-If nint.pc <> cpu.oldpc Then fail("CPU.PC", Str(Hex(nint.pc)), Str(Hex(cpu.oldpc)))
-If opc <> instruction Then fail("Decoder", opc, instruction)
-If nint.acc <> cpu.oldacc Then fail("CPU.ACC", Str(Hex(nint.acc)), Str(Hex(cpu.oldacc)))
-If nint.x <> cpu.oldx Then fail("CPU.X", Str(Hex(nint.x)), Str(Hex(cpu.oldx)))
-If nint.y <> cpu.oldy Then fail("CPU.Y", Str(Hex(nint.y)), Str(Hex(cpu.oldy)))
-If nint.ps <> cpu.oldps Then fail("CPU.PS", Str(Hex(nint.ps)), Str(Hex(cpu.oldps)))
-If nint.sp <> cpu.oldsp Then fail("CPU.sp", Str(Hex(nint.sp)), Str(Hex(cpu.oldsp)))
-'If nintsl <> ppu.scanline Then fail("scanline", Str(nintsl), Str(ppu.scanline))
-End Sub
 
-Sub fail (ByVal op As String, ByVal expected As String, ByVal actual As String)
-	Cls
-	Print "Log comparison failed on op " & totalops
-	Print op & " was expected to be " & expected & " but was actually " & actual 
-	Print
-	Print "Full line of the log in question: "
-	Print curline
-	Print
-	Print "Taddr: " & taddr
-	Print "*Tdata: " & *tdata
-	Print Hex(cpu.acc)
-	Print amode
-	Print cpu.memory(&h2ff)
-	Print "Paused. Press Space to resume or Escape to exit!"
-Do
-	Sleep 10
-	If MultiKey(SC_ESCAPE) Then CAE
-Loop While Not MultiKey(SC_SPACE)
-While MultiKey(SC_SPACE):Sleep 10,1: wend
-End Sub

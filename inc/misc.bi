@@ -27,19 +27,22 @@ Sub keycheck
 		nextskip = opstoskip
 		While MultiKey(SC_PAGEUP):Sleep 10: wend
 	EndIf
-	'If MultiKey(SC_w) Then
-	'	cpu.memory(&hff) = Asc("w")
-	'elseIf MultiKey(SC_a) Then
-	'	cpu.memory(&hff) = Asc("a")
-	'elseIf MultiKey(SC_s) Then
-	'	cpu.memory(&hff) = Asc("s")
-	'elseIf MultiKey(SC_d) Then
-	'	cpu.memory(&hff) = Asc("d")
-	'elseIf MultiKey(SC_x) Then
-	'	cpu.memory(&hff) = Asc("x")
-	'Else
-	'	cpu.memory(&hff)=Asc(" ")
-	'EndIf
+	
+	If emulatorMode = "6502" Then
+	If MultiKey(SC_w) Then
+		cpu.memory(&hff) = Asc("w")
+	ElseIf MultiKey(SC_a) Then
+		cpu.memory(&hff) = Asc("a")
+	ElseIf MultiKey(SC_s) Then
+		cpu.memory(&hff) = Asc("s")
+	ElseIf MultiKey(SC_d) Then
+		cpu.memory(&hff) = Asc("d")
+	ElseIf MultiKey(SC_x) Then
+		cpu.memory(&hff) = Asc("x")
+	Else
+		cpu.memory(&hff)=Asc(" ")
+	EndIf
+	End if
 
 	If MultiKey(SC_plus) Then ' increase emulation speed
 		opgoal+=500
@@ -65,7 +68,7 @@ Sub keycheck
 		Wend
 	End If
 
-	If MultiKey(SC_f12)Then  'dump memory
+	If MultiKey(SC_f12)Then  'dump vram
 		Dim As Integer f = FreeFile
 		If fileexists("VRAMdump.mem") Then Kill ("VRAMdump.mem")
 		Open "VRAMdump.mem" For Binary As #f
@@ -78,21 +81,6 @@ Sub keycheck
 			'nothing
 		Wend
 	End If
-
-	If MultiKey(SC_f1)Then  'save state
-		'savestate
-		While MultiKey(SC_F1)
-			'nothing
-		Wend
-	End If
-
-	If MultiKey(SC_f2)Then  'load state
-		'loadstate
-		While MultiKey(SC_F2)
-			'nothing
-		Wend
-	End If
-
 End Sub
 
 Sub dumpmemory ' dump memory to 6502dump.mem, for examining with hex or whatever

@@ -72,7 +72,6 @@ Sub ProcessCurTile
 		pixel =((ppu.lbit Shr 7) and &h1) + (((ppu.ubit Shr 7) and &h1) Shl 1)
 		Line framebuffer, (xoff+((ppu.curx*2)-2),yoff+((ppu.cury*2)-1))-(xoff+((ppu.curx*2)),yoff+((ppu.cury*2)-1)), masterpalette((pPalette Shr (pixel * 8) AND &hff))
 		Line framebuffer, (xoff+((ppu.curx*2)-2),yoff+((ppu.cury*2)-2))-(xoff+((ppu.curx*2)),yoff+((ppu.cury*2)-2)), masterpalette((pPalette Shr (pixel * 8) AND &hff))
-		'PSet framebuffer, (xoff+ppu.curx,yoff+ppu.cury),masterpalette((pPalette Shr (pixel * 8) AND &hff))
 		ppu.curx+=1
 		ppu.lbit Shl = 1
 		ppu.ubit Shl = 1
