@@ -1,6 +1,6 @@
 [Project]
 Version=3
-Description=Project Strawberry
+Description=StrawberryNES
 Api=fb (FreeBASIC)
 Grouping=1
 AddMainFiles=1
@@ -13,13 +13,14 @@ RunCmd=0
 Module=Module Build,fbc -c
 Recompile=2
 Current=1
-1=FPU SSE,fbc -s gui -fpu SSE -vec 2
-2=Windows GUI,fbc -s gui
-Output=bin/Project Strawberry.exe
+1=Release,fbc -s gui -fpu SSE -vec 2
+2=Debug,fbc -s gui -fpu SSE -vec 2 -g
+3=Windows GUI,fbc -s gui
+Output=bin/StrawberryNES.exe
 Run=
 Delete=
 [TabOrder]
-TabOrder=1,8,2,3,9,10,4
+TabOrder=1,8,2,3,9,10,4,6
 [File]
 1=Project Strawberry.bas
 2=Inc\6502_instruction_set.bi
@@ -41,13 +42,13 @@ TabOrder=1,8,2,3,9,10,4
 9=
 10=
 [FileInfo]
-1=0,67,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-2=0,253,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1=0,65,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+2=0,75,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 3=0,42,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-4=0,32,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+4=0,83,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 5=0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-6=0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+6=0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 7=0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-8=0,129,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+8=0,73,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 9=0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-10=0,8,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+10=0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
