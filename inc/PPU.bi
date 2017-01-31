@@ -1,7 +1,9 @@
 Declare Sub ppuLoop
-Declare Sub ProcessCurTile
+Declare Sub ppuRender
+Declare Sub renderBackground
 Declare Sub copySprites
 Declare Sub renderSprites
+Declare Sub deriveAddresses(ByVal z As UByte)
 Declare Function readPPUreg(ByVal addr As UShort)as ULongInt
 Declare Function writePPUreg(ByVal addr As uShort, ByVal value As UByte) As ULongInt
 
@@ -43,6 +45,7 @@ Function writePPUreg(ByVal addr As UShort, ByVal value As UByte) As ULongInt
 			Next
 	End Select
 End Function
+
 Function readPPUreg(ByVal addr As UShort)As ULongInt
 	Dim As UByte value
 	Select Case addr
@@ -61,7 +64,29 @@ Function readPPUreg(ByVal addr As UShort)As ULongInt
 	Return value
 End Function
 
-Sub ProcessCurTile
+Sub deriveAddresses(ByVal z As UByte)
+	Dim temp_P As UInteger
+	ppu.curAttrb = ppu.vram(ppu.attrbLine + (z \ 4))
+	ppu.curtile = ppu.vram(ppu.tableLine+z) 
+	If Not (ppu.scanline\16) And 1 Then
+		If (z\2) And 1 Then
+			ppu.palette = (ppu.curAttrb Shr 2) And &h3
+		Else
+			ppu.palette = ppu.curAttrb And &h3
+		EndIf
+	Else
+		If(z\2) And 1 Then
+			ppu.palette=(ppu.curAttrb Shr 6) And &h3
+		Else
+			ppu.palette=(ppu.curAttrb Shr 4) And &h3
+		EndIf
+	End If
+	temp_p = PPUCTRL_B + (ppu.scanline AND 7)
+	ppu.lbit = ppu.vram(((temp_P + (ppu.curTile * 16))))
+	ppu.ubit = ppu.vram(((temp_p + (ppu.CurTile * 16)  + 8)))
+End Sub
+
+Sub renderBackground
 	Dim As Ubyte pixel
 	Dim As UInteger xoff, yoff
 	xoff = screenx-512
@@ -71,9 +96,8 @@ Sub ProcessCurTile
 	For zz As Integer = 0 To 7
 		pixel =((ppu.lbit Shr 7) and &h1) + (((ppu.ubit Shr 7) and &h1) Shl 1)
 		If masterpalette((pPalette Shr (pixel * 8) AND &hff)) <> 0 Then
-		Line framebuffer, (xoff+((ppu.curx*2)-2),yoff+((ppu.cury*2)-1))-(xoff+((ppu.curx*2)),yoff+((ppu.cury*2)-1)), masterpalette((pPalette Shr (pixel * 8) AND &hff))
-		Line framebuffer, (xoff+((ppu.curx*2)-2),yoff+((ppu.cury*2)-2))-(xoff+((ppu.curx*2)),yoff+((ppu.cury*2)-2)), masterpalette((pPalette Shr (pixel * 8) AND &hff))
-	   End if
+			ppuBuffer(ppu.curx,ppu.cury) = masterpalette((pPalette Shr (pixel * 8) AND &hff))
+		End if
 		ppu.curx+=1
 		ppu.lbit Shl = 1
 		ppu.ubit Shl = 1
@@ -104,20 +128,14 @@ Sub copySprites
 End Sub
 
 Sub renderSprites
-	'tempSPRram (0 To 7, 0 To 3) As UByte
-	'for 8x8 tile number is all of byte 1, for 8, 16 its the 7 MSB
 	#Define spr16Address (ppu.tempSPRram(spr,1) And 1) * &h1000
 	#Define palAddress (ppu.tempSPRram(spr,2) And 3)
 	#Define flipY (ppu.tempSPRram(spr,2) And 128)
 	#Define flipX (ppu.tempSPRram(spr,2) And 64)
 	Dim As Byte zstart, zstop, zstep, zoff, zyoff
-	Dim As UByte pixel
-	Dim As UInteger sprTileNumber
-	Dim As UInteger xoff, yoff
-	Dim As UByte ubit, lbit
-	Dim As UByte sprHeight = 7
+	Dim As UByte pixel, ubit, lbit, sprHeight = 7
+	Dim As UInteger sprTileNumber, xoff, yoff, sprAddress, paletteaddr, Ppalette
 	If PPUCTRL_H Then sprHeight = 15
-	Dim As UInteger sprAddress
 	xoff = screenx-512
 	yoff = screeny-480
 	For spr As UByte = 0 To 7
@@ -136,8 +154,8 @@ Sub renderSprites
 			lbit = ppu.vram((sprAddress+((ppu.scanline - ppu.tempSPRram(spr,0)))) + (16*sprTilenumber)-1)
 			ubit = ppu.vram((sprAddress+((ppu.scanline - ppu.tempSPRram(spr,0)))) + ((16*sprTilenumber)+7))
 		End If
-		Dim As UInteger paletteaddr = &h3F11 + (palAddress * 4)
-		Dim As UInteger Ppalette = PPU.vram(&h3F00) + (PPU.vram(paletteaddr) shl 8) + (PPU.vram(paletteaddr + 1) shl 16) + (PPU.vram(paletteaddr + 2) shl 24)
+		paletteaddr = &h3F11 + (palAddress * 4)
+		Ppalette = PPU.vram(&h3F00) + (PPU.vram(paletteaddr) shl 8) + (PPU.vram(paletteaddr + 1) shl 16) + (PPU.vram(paletteaddr + 2) shl 24)
 		If flipX Then
 			zstart = 7
 			zstop = 0
@@ -154,9 +172,8 @@ Sub renderSprites
 			lbit Shl = 1
 			ubit Shl = 1
 			If pixel > 0 Then
-				Line framebuffer, (zoff+xoff+(((ppu.tempSPRram(spr,3)+zz)*2)-2),yoff+((ppu.scanline*2)-1))-(zoff+xoff+(((ppu.tempSPRram(spr,3)+zz)*2)),yoff+((ppu.scanline*2)-1)), masterpalette((pPalette Shr (pixel * 8) AND &hff))
-				Line framebuffer, (zoff+xoff+(((ppu.tempSPRram(spr,3)+zz)*2)-2),yoff+((ppu.scanline*2)-2))-(zoff+xoff+(((ppu.tempSPRram(spr,3)+zz)*2)),yoff+((ppu.scanline*2)-2)), masterpalette((pPalette Shr (pixel * 8) AND &hff))
-			End If
+				ppuBuffer(ppu.tempSPRram(spr,3)+zz,ppu.scanline) =  masterpalette((pPalette Shr (pixel * 8) AND &hff))
+			End if
 		Next
 	Next
 	For spr As UByte = 0 To 7
@@ -165,39 +182,35 @@ Sub renderSprites
 		Next
 	Next
 End Sub
+
+Sub ppuRender
+	Dim As UByte sf = 2
+	Dim As UInteger xoff = screenx - (256*sf)
+	Dim As UInteger yoff = screeny - (240*sf)
+	For yyy As Integer = 0 To 239
+		For xxx As Integer = 0 To 255
+			For zzz As Integer = 0 To sf-1
+				If ppubuffer(xxx,yyy) <> 0 Then Line framebuffer, (xoff+(xxx*sf-sf),yoff+(yyy*sf-zzz))-(xoff+(xxx*sf),yoff+(yyy*sf-zzz)), ppubuffer(xxx,yyy)
+			Next
+		Next
+	Next
+End Sub
 Sub ppuLoop
 	Select Case ppu.scanline
 		Case -1 'prerender scanline
 			PPUSTATUS And= &h7F
 		Case 0 To 239 'proper scanline
-			Dim temp_P As UInteger
 			ppu.tableLine = PPUCTRL_NN + ((ppu.scanline \ 8) * 32)
 			ppu.attrbLine = PPUCTRL_NN + &h3C0 + ((ppu.scanline \ 32) * 8)
 			For z As UByte = 0 To 31
-				ppu.curAttrb = ppu.vram(ppu.attrbLine + (z \ 4))
-				ppu.curtile = ppu.vram(ppu.tableLine+z) 'this contains the pattern lookup from the nametable
-				If Not (ppu.scanline\16) And 1 Then
-					If (z\2) And 1 Then
-						ppu.palette = (ppu.curAttrb Shr 2) And &h3
-					Else
-						ppu.palette = ppu.curAttrb And &h3
-					EndIf
-				Else
-					If(z\2) And 1 Then
-						ppu.palette=(ppu.curAttrb Shr 6) And &h3
-					Else
-						ppu.palette=(ppu.curAttrb Shr 4) And &h3
-					EndIf
-				End If
-				temp_p = PPUCTRL_B + (ppu.scanline AND 7)
-				ppu.lbit = ppu.vram(((temp_P + (ppu.curTile * 16))))
-				ppu.ubit = ppu.vram(((temp_p + (ppu.CurTile * 16)  + 8)))
-				ProcessCurTile
-				copySprites
-				renderSprites
-			Next
+				deriveAddresses(z) 'This sub derives the nametable and palette addresses for the background
+				renderBackground 'This sub renders the background in to the framebuffer array
+				copySprites 'This sub copies the sprites for the current scanline from main sprite memory to temporary sprite memory
+				renderSprites 'This sub renders the sprites in to the framebuffer array
+			next
 		Case 240 'post render scanline
-			push_framebuffer
+			ppuRender 'This sub renders the framebuffer array in to the main framebuffer while scaling according to the scalefactor
+			push_framebuffer 'This sub pushes the framebuffer to the screen
 			vblanks+=1
 		Case 241 To 248
 			'dsfsdfs

@@ -47,7 +47,7 @@ Using fb
 #Include Once "file.bi" 'File functions
 #Include Once "Freeimage.bi" ' Freeimage library
 #Include Once "inc/freetofb.bi" 'Easily use Freeimage images in Freebasic
-#Include Once "zlib.bi"
+#Include Once "zlib.bi" 'This is needed for the Freeimage library
 Declare Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As Ushort ' for reading memory
 Declare Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write a value to NES memory
 Declare Sub status 'print various status stuff to the screen
@@ -77,6 +77,7 @@ Dim Shared As Single start, lastframetime,opsPerSecond, stepstart
 Dim Shared As Any Ptr strawberry
 Dim Shared As UInteger status_timer, vblanks
 Dim Shared As Any Ptr framebuffer
+Dim Shared As UInteger PPUbuffer(256,240)
 Dim Shared As uinteger masterPalette(64) = {&h545454, &h001E74, &h081090, &h300088, &h440064, &h5C0030, &h540400, &h3C1800, &h202A00, &h083A00, &h004000, &h003C00, &h00323C, &h000000, &h000000, &h000000, &h989698, &h084CC4, &h3032EC, &h5C1EE4, &h8814B0, &hA01464, &h982220, &h783C00, &h545A00, &h287200, &h087C00, &h007628, &h006678, &h000000, &h000000, &h000000, &hECEEEC, &h4C9AEC, &h787CEC, &hB062EC, &hE454EC, &hEC58B4, &hEC6A64, &hD48820, &hA0AA00, &h74C400, &h4CD020, &h38CC6C, &h38B4CC, &h3C3C3C, &h000000, &h000000, &hECEEEC, &hA8CCEC, &hBCBCEC, &hD4B2EC, &hECAEEC, &hECAED4, &hECB4B0, &hE4C490, &hCCD278, &hB4DE78, &hA8E290, &h98E2B4, &hA0D6E4, &hA0A2A0, &h000000, &h000000}
 Dim Shared As UByte button_counter, button(0 To 7)
 
@@ -263,6 +264,11 @@ End Sub
 Sub clear_framebuffer 'Just clears the main framebuffer
 	For q As UInteger = 0 To screeny
 		Line framebuffer, (0,q)-(screenx,q), 0
+	Next
+	For yyy As UInteger = 0 To 239
+		For xxx As UInteger = 0 To 256
+			ppubuffer(xxx,yyy) = 0
+		Next
 	Next
 End Sub
 
