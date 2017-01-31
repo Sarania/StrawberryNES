@@ -818,6 +818,8 @@ Sub decode_and_execute(ByVal opc As UByte)
 			amode = "Decoder error!"
 
 	End Select
+	#ifdef debugmode
+	'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
 	If trace_done = 0 Then
 	For i As Integer = 255 To 0 Step -1
 		opHistory(i) = opHistory(i-1)
@@ -826,4 +828,6 @@ Sub decode_and_execute(ByVal opc As UByte)
 	opHistory(0) = instruction & "(" & amode & ") "
 	End If
 	trace_done=0
+	'==================================================================================================================================================================
+	#EndIf
 End Sub

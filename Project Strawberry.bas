@@ -38,7 +38,7 @@ This document last updated at: 19:21 CST 3/28/2014
 
 Copyright 2014 Blyss Sarania
 '/
-#Define debugmode
+'#Define debugmode
 Randomize Timer
 #Include Once "fbgfx.bi"
 Using fb
@@ -68,7 +68,7 @@ Declare Sub comparelog
 Declare Sub fail(ByVal op As String, ByVal expected As String, ByVal actual As String)
 '==================================================================================================================================================================
 #EndIf
-Declare Sub push_Framebuffer
+Declare Sub push_framebuffer
 Declare Sub clear_framebuffer
 Dim Shared As UByte debug, mapper, trace_done = 0
 Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=0
