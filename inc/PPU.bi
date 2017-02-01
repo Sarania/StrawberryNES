@@ -45,7 +45,7 @@ Function writePPUreg(ByVal addr As UShort, ByVal value As UByte) As ULongInt
 			EndIf
 			ppu.vrAddr And= &h3FFF
 		Case &h4014
-			Dim As UShort dmaaddr = value * &H100
+		Dim As UShort dmaaddr = value * &H100
 			for i as Uinteger = 0 to &hFF
 				ppu.sprRAM(i) = cpu.memory(dmaaddr+i)
 			Next
@@ -107,9 +107,7 @@ Sub renderBackground
 	Dim as uinteger pPalette = ppu.vram(&h3f00) + (ppu.vram(palette_address) Shl 8) + (ppu.vram(palette_address+1) Shl 16) + (ppu.vram(palette_address+2) Shl 24)
 	For zz As Integer = 0 To 7
 		pixel =((ppu.lbit Shr 7) and &h1) + (((ppu.ubit Shr 7) and &h1) Shl 1)
-		''If masterpalette((pPalette Shr (pixel * 8) AND &hff)) <> 0 Then
 		ppuBuffer(ppu.curx,ppu.scanline) = masterpalette((pPalette Shr (pixel * 8) AND &hff))
-		'End if
 		ppu.curx+=1
 		ppu.lbit Shl = 1
 		ppu.ubit Shl = 1
@@ -129,6 +127,7 @@ Sub copySprites
 		If ((ppu.sprRAM(spr) + 1) <= ppu.scanline) And ((ppu.sprRAM(spr) + 1) + sprHeight >= ppu.scanline) Then
 			If sprCount = 8 Then
 				PPUSTATUS = PPUSTATUS Or 32
+				msg = "SPR overflow on SL " & str(ppu.scanline)
 				Exit for
 			EndIf
 			For sprcopy As UByte = 0 To 3
@@ -199,6 +198,7 @@ Sub renderSprites
 				EndIf
 			End If
 		Next
+		
 		skipthisOne:
 	Next
 	For spr As UByte = 0 To 7
@@ -209,7 +209,7 @@ Sub renderSprites
 End Sub
 
 Sub ppuRender
-	Dim As UByte sf = 3
+	Dim As UByte sf = 2
 	Dim As UInteger xoff = screenx - (256*sf)
 	Dim As UInteger yoff = screeny - (240*sf)
 	For yyy As Integer = 0 To 239

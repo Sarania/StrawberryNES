@@ -248,7 +248,7 @@ Sub status 'This sub prints the status of various things to the screen
 	Draw String framebuffer, (0,110), Flag_S & "   " & Flag_V & "   " & flag_U & "   " & flag_B & "   " & flag_D & "   " & flag_I & "   " & flag_Z & "   " & flag_C
 	Draw String framebuffer, (0,130), "Processor status: " & cpu.ps & " " & " (" & Hex(cpu.ps) & ")"
 	Draw String framebuffer, (0,140), "Message: " & msg
-	msg = ""
+	'msg = ""
 	Draw String framebuffer, (0,150), "Trace: "
 	Line framebuffer, (0,95)-(240,120),RGB(255,255,255),b
 	For q As UByte = 1 To 60
@@ -316,7 +316,7 @@ Sub nmi 'Non maskable interrupt
 	suspicious_array(1) = readmem(&HFFFB)
 	suspicious_pointer = @suspicious_array(0)
 	cpu.pc = *suspicious_pointer
-	ticks+=7
+	ticks+=7	
 	'For i As Integer = 255 To 1 Step -1
 	'	opHistory(i) = opHistory(i-1)
 	'Next
@@ -324,6 +324,7 @@ Sub nmi 'Non maskable interrupt
 End Sub
 
 Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As UShort
+	if addr >= &h800 and addr < &h2000 then addr And= &h800
 	Select Case addr
 		Case &h2000 To &h3FFF
 			If addr = &h2002 Then cpu.memory(&h2002) And= 127
@@ -348,6 +349,7 @@ Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write memory
 	If emulatorMode = "6502" Then
 		cpu.memory(addr) = value
 	Else
+		if addr >= &h800 and addr < &h2000 then addr And= &h800
 		Select Case addr
 			Case &h2000 To &h3FFF
 				writePPUreg(addr And &h2007, value)
@@ -357,7 +359,6 @@ Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write memory
 				'apu stuff
 			Case &h4016
 				PadWrite
-				'reset the read position
 			Case &h8000 To &hffff
 				'Swap banks
 				bankSwap(value,addr)
@@ -516,9 +517,9 @@ Do
 	totalops+=1
 	decode_and_execute(cpu.memory(cpu.pc-1)) ' decode the binary located at the PC to opcode and address mode and then execute the instruction
 	clear_b '==========================================================HACKS==========================================================================================
-	If ticks >=113 And emulatorMode <> "6502" Then
+	If ticks >=213 And emulatorMode <> "6502" Then
 		ppuLoop
-		framelimit
+		frameLimit
 		ticks = 0
 	EndIf
 	#Ifdef debugmode
@@ -557,7 +558,6 @@ Do
 	#EndIf
 	'==================================================================================================================================================================
 	If opsPerSecond > opgoal Then Sleep 10
-	If fps > 60 Then Sleep 10
 Loop While Not MultiKey(SC_ESCAPE)
 Close
 CAE
