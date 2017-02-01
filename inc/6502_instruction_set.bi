@@ -76,7 +76,6 @@ Sub get_data
 			cpu.pc+=1
 		Case "ABS" 'Absolute
 			taddr = readmem(cpu.pc,2)
-			If taddr = &h4016 Then cpu.memory(&h4016) = padread
 			tdata = @cpu.memory(taddr)
 			cpu.pc+=2
 		Case "ABSX" 'absolute X
@@ -124,6 +123,7 @@ Sub get_data
 			tdata = @cpu.memory(taddr)
 			cpu.pc+=1
 	End Select
+	If taddr = &h4016 Then cpu.memory(&h4016) = padRead
 	/'=========================================================================
 	                             NOTICE
 	==========================================================================='/
@@ -152,7 +152,7 @@ Sub get_data
 	End Select
 	#ifdef debugmode
 	'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
-	'For i As Integer = 255 To 0 Step -1
+	'For i As Integer = 255 To 1 Step -1
 	'	opHistory(i) = opHistory(i-1)
 	'Next
 	'opHistory(0) = instruction & "(" & amode & ") " & " Addr: " & addrstr & " Data:" & *tdata

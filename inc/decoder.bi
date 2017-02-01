@@ -820,7 +820,7 @@ Sub decode_and_execute(ByVal opc As UByte)
 	#ifdef debugmode
 	'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
 	'If trace_done = 0 Then
-	'For i As Integer = 255 To 0 Step -1
+	'For i As Integer = 255 To 1 Step -1
 	'	opHistory(i) = opHistory(i-1)
 	'Next
 

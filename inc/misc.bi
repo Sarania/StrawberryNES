@@ -22,6 +22,7 @@ Declare Sub keycheck
 
 Sub keycheck
 	'This  is the keycheck for the "simple" 6502 programs. Basically it's memory mapped IO. This stuff will need to go when we work on NES/Atari/whatever
+	If MultiKey(SC_6) Then ppustatus Or= &h40
 	If MultiKey(SC_PAGEUP) Then
 		If debug = 1 Then debug = 0 Else debug = 1
 		nextskip = opstoskip

@@ -32,7 +32,13 @@ Function writePPUreg(ByVal addr As UShort, ByVal value As UByte) As ULongInt
 				ppu.vrAddr And= &h3FFF
 			endif
 		Case &h2007
-			ppu.vram(ppu.vrAddr) = value
+			Dim As UInteger vraddr
+			vraddr = ppu.vraddr
+			If vraddr = &h3f10 OrElse vraddr = &h3f14 OrElse vraddr =&h3f18 OrElse vraddr = &h3f1c Then vraddr - = &h10
+			If vraddr >= &h3000 AndAlso vraddr <= &h3EFF Then vraddr And = &h1000
+			If vraddr >= &h3F20 AndAlso vraddr <= &h3fff Then vraddr And = &h3F1F
+			'If vraddr >= &h2800 AndAlso vraddr < &h3000 Then vraddr- = &h800
+			ppu.vram(vrAddr) = value
 			If PPUCTRL_I = 1 Then
 				ppu.vrAddr += 32
 			Else ppu.vrAddr += 1
@@ -57,7 +63,13 @@ Function readPPUreg(ByVal addr As UShort)As ULongInt
 		Case &h2004
 			value = ppu.sprRAM(ppu.sprADDR)
 		Case &h2007
-			value = ppu.vram(ppu.vrAddr)
+			Dim As UInteger vraddr
+			vraddr = ppu.vraddr
+			If vraddr = &h3f10 OrElse vraddr = &h3f14 OrElse vraddr =&h3f18 OrElse vraddr = &h3f1c Then vraddr - = &h10
+			If vraddr >= &h3000 AndAlso vraddr <= &h3EFF Then vraddr And = &h1000
+			If vraddr >= &h3F20 AndAlso vraddr <= &h3fff Then vraddr And = &h3F1F
+			'If vraddr >= &h2800 AndAlso vraddr < &h3000 Then vraddr- = &h800
+			value = ppu.vram(vrAddr)
 		Case else
 			'do
 	End Select
@@ -67,7 +79,7 @@ End Function
 Sub deriveAddresses(ByVal z As UByte)
 	Dim temp_P As UInteger
 	ppu.curAttrb = ppu.vram(ppu.attrbLine + (z \ 4))
-	ppu.curtile = ppu.vram(ppu.tableLine+z) 
+	ppu.curtile = ppu.vram(ppu.tableLine+z)
 	If Not (ppu.scanline\16) And 1 Then
 		If (z\2) And 1 Then
 			ppu.palette = (ppu.curAttrb Shr 2) And &h3
@@ -95,9 +107,9 @@ Sub renderBackground
 	Dim as uinteger pPalette = ppu.vram(&h3f00) + (ppu.vram(palette_address) Shl 8) + (ppu.vram(palette_address+1) Shl 16) + (ppu.vram(palette_address+2) Shl 24)
 	For zz As Integer = 0 To 7
 		pixel =((ppu.lbit Shr 7) and &h1) + (((ppu.ubit Shr 7) and &h1) Shl 1)
-		If masterpalette((pPalette Shr (pixel * 8) AND &hff)) <> 0 Then
-			ppuBuffer(ppu.curx,ppu.cury) = masterpalette((pPalette Shr (pixel * 8) AND &hff))
-		End if
+		''If masterpalette((pPalette Shr (pixel * 8) AND &hff)) <> 0 Then
+		ppuBuffer(ppu.curx,ppu.scanline) = masterpalette((pPalette Shr (pixel * 8) AND &hff))
+		'End if
 		ppu.curx+=1
 		ppu.lbit Shl = 1
 		ppu.ubit Shl = 1
@@ -128,18 +140,20 @@ Sub copySprites
 End Sub
 
 Sub renderSprites
+	#Define sprPriority (ppu.tempSPRram(spr,2) And 32) / 32
 	#Define spr16Address (ppu.tempSPRram(spr,1) And 1) * &h1000
 	#Define palAddress (ppu.tempSPRram(spr,2) And 3)
 	#Define flipY (ppu.tempSPRram(spr,2) And 128)
 	#Define flipX (ppu.tempSPRram(spr,2) And 64)
+	Dim As UInteger testPixel, pixcolor
 	Dim As Byte zstart, zstop, zstep, zoff, zyoff
 	Dim As UByte pixel, ubit, lbit, sprHeight = 7
 	Dim As UInteger sprTileNumber, xoff, yoff, sprAddress, paletteaddr, Ppalette
 	If PPUCTRL_H Then sprHeight = 15
 	xoff = screenx-512
 	yoff = screeny-480
-	For spr As UByte = 0 To 7
-		If ppu.tempSPRram(spr,0) = 0 Then Exit For
+	For spr As Byte = 7 To 0 Step -1
+		If ppu.tempSPRram(spr,0) = 0 Then GoTo skipThisOne
 		If sprHeight = 7 Then
 			sprAddress = PPUCTRL_S
 			sprTileNumber = ppu.tempSPRram(spr,1)
@@ -171,10 +185,21 @@ Sub renderSprites
 			pixel =((lbit Shr 7) and &h1) + (((ubit Shr 7) and &h1) Shl 1)
 			lbit Shl = 1
 			ubit Shl = 1
-			If pixel > 0 Then
-				ppuBuffer(ppu.tempSPRram(spr,3)+zz,ppu.scanline) =  masterpalette((pPalette Shr (pixel * 8) AND &hff))
-			End if
+			pixcolor = masterpalette((pPalette Shr (pixel * 8) AND &hff))
+			testPixel = ppuBuffer(ppu.tempSPRram(spr,3)+zz,ppu.scanline)
+			If pixel <> 0 Then
+				If sprPriority = 0 Then
+					ppuBuffer(ppu.tempSPRram(spr,3)+zz,ppu.scanline) =  pixcolor
+				ElseIf sprPriority = 1 and (testpixel = -1 Or testpixel = 0) Then
+					ppuBuffer((ppu.tempSPRram(spr,3)+zz),ppu.scanline) = pixcolor
+				EndIf
+				If spr = 0 And testpixel <> -1 Then
+					ppuBuffer((ppu.tempSPRram(spr,3)+zz),ppu.scanline) = pixcolor
+					PPUSTATUS Or= &H40
+				EndIf
+			End If
 		Next
+		skipthisOne:
 	Next
 	For spr As UByte = 0 To 7
 		For sprspr As UByte = 0 To 3
@@ -184,13 +209,13 @@ Sub renderSprites
 End Sub
 
 Sub ppuRender
-	Dim As UByte sf = 2
+	Dim As UByte sf = 3
 	Dim As UInteger xoff = screenx - (256*sf)
 	Dim As UInteger yoff = screeny - (240*sf)
 	For yyy As Integer = 0 To 239
 		For xxx As Integer = 0 To 255
 			For zzz As Integer = 0 To sf-1
-				If ppubuffer(xxx,yyy) <> 0 Then Line framebuffer, (xoff+(xxx*sf-sf),yoff+(yyy*sf-zzz))-(xoff+(xxx*sf),yoff+(yyy*sf-zzz)), ppubuffer(xxx,yyy)
+				If ppubuffer(xxx,yyy) <> 0 AndAlso ppubuffer(xxx,yyy) <> -1 Then Line framebuffer, (xoff+(xxx*sf-sf),yoff+(yyy*sf-zzz))-(xoff+(xxx*sf),yoff+(yyy*sf-zzz)), ppubuffer(xxx,yyy)
 			Next
 		Next
 	Next
@@ -198,7 +223,8 @@ End Sub
 Sub ppuLoop
 	Select Case ppu.scanline
 		Case -1 'prerender scanline
-			PPUSTATUS And= &h7F
+			PPUSTATUS And= &h7F 'clear vblank flag
+			PPUSTATUS And= &hBF ' This clears the sprite zero bit
 		Case 0 To 239 'proper scanline
 			ppu.tableLine = PPUCTRL_NN + ((ppu.scanline \ 8) * 32)
 			ppu.attrbLine = PPUCTRL_NN + &h3C0 + ((ppu.scanline \ 32) * 8)
@@ -214,17 +240,17 @@ Sub ppuLoop
 			vblanks+=1
 		Case 241 To 248
 			'dsfsdfs
+			If ppu.scanline = 247 Then
+				If PPUCTRL_V = 1 Then
+					nmi
+				EndIf
+			EndIf
 		Case Else 'vblank period
 			'stuff
+			ppustatus or=&h80 'set vblank flag
 			ppu.curx=0
 			ppu.cury=0
 	End Select
-	If ppu.scanline = 241 Then
-		PPUSTATUS Or= &h80
-		If PPUCTRL_V = 1 Then
-			nmi
-		EndIf
-	EndIf
 	ppu.scanline += 1
 	If ppu.scanline = 262 Then ppu.scanline = -1
 End Sub

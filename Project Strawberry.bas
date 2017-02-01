@@ -38,7 +38,7 @@ This document last updated at: 19:21 CST 3/28/2014
 
 Copyright 2014 Blyss Sarania
 '/
-'#Define debugmode
+#Define debugmode
 Randomize Timer
 #Include Once "fbgfx.bi"
 Using fb
@@ -70,14 +70,15 @@ Declare Sub fail(ByVal op As String, ByVal expected As String, ByVal actual As S
 #EndIf
 Declare Sub push_framebuffer
 Declare Sub clear_framebuffer
+Declare Sub framelimit
 Dim Shared As UByte debug, mapper, trace_done = 0
 Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=0
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
-Dim Shared As Single start, lastframetime,opsPerSecond, stepstart
+Dim Shared As Single start, lastframetime,opsPerSecond, stepstart,fps, vstart
 Dim Shared As Any Ptr strawberry
 Dim Shared As UInteger status_timer, vblanks
 Dim Shared As Any Ptr framebuffer
-Dim Shared As UInteger PPUbuffer(256,240)
+Dim Shared As Integer PPUbuffer(256,240), backbuffer(256,240)
 Dim Shared As uinteger masterPalette(64) = {&h545454, &h001E74, &h081090, &h300088, &h440064, &h5C0030, &h540400, &h3C1800, &h202A00, &h083A00, &h004000, &h003C00, &h00323C, &h000000, &h000000, &h000000, &h989698, &h084CC4, &h3032EC, &h5C1EE4, &h8814B0, &hA01464, &h982220, &h783C00, &h545A00, &h287200, &h087C00, &h007628, &h006678, &h000000, &h000000, &h000000, &hECEEEC, &h4C9AEC, &h787CEC, &hB062EC, &hE454EC, &hEC58B4, &hEC6A64, &hD48820, &hA0AA00, &h74C400, &h4CD020, &h38CC6C, &h38B4CC, &h3C3C3C, &h000000, &h000000, &hECEEEC, &hA8CCEC, &hBCBCEC, &hD4B2EC, &hECAEEC, &hECAED4, &hECB4B0, &hE4C490, &hCCD278, &hB4DE78, &hA8E290, &h98E2B4, &hA0D6E4, &hA0A2A0, &h000000, &h000000}
 Dim Shared As UByte button_counter, button(0 To 7)
 
@@ -258,7 +259,7 @@ Sub status 'This sub prints the status of various things to the screen
 	Put framebuffer, (screenx-300,6),strawberry, Alpha
 	Draw String framebuffer, (screenx - 250,60), "Version " & version
 	Draw String framebuffer, (screenx - 270, 70), "Blyss Sarania & Nobbs66"
-	Draw String framebuffer, (screenx - 210,80), Format(vblanks / (Timer-start),"0.00") & " fps"
+	Draw String framebuffer, (screenx - 210,80), Format(fps,"0.00") & " fps"
 End Sub
 
 Sub clear_framebuffer 'Just clears the main framebuffer
@@ -267,7 +268,7 @@ Sub clear_framebuffer 'Just clears the main framebuffer
 	Next
 	For yyy As UInteger = 0 To 239
 		For xxx As UInteger = 0 To 256
-			ppubuffer(xxx,yyy) = 0
+			ppubuffer(xxx,yyy) = -1
 		Next
 	Next
 End Sub
@@ -283,6 +284,7 @@ Sub initcpu 'initialize CPU and RAM
 		cpu.memory(i) = 0
 		ppu.vram(i) = 0
 	Next
+	clear_framebuffer
 	clear_s
 	clear_z
 	set_i
@@ -315,10 +317,10 @@ Sub nmi 'Non maskable interrupt
 	suspicious_pointer = @suspicious_array(0)
 	cpu.pc = *suspicious_pointer
 	ticks+=7
-	For i As Integer = 255 To 0 Step -1
-		opHistory(i) = opHistory(i-1)
-	Next
-	opHistory(0) = "NMI fired on " & totalops & " ops."
+	'For i As Integer = 255 To 1 Step -1
+	'	opHistory(i) = opHistory(i-1)
+	'Next
+	'opHistory(0) = "NMI fired on " & totalops & " ops."
 End Sub
 
 Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As UShort
@@ -386,6 +388,24 @@ Sub CAE
 	Close
 	End
 End Sub
+
+sub frameLimit
+	fps = vblanks/(Timer - vStart)
+	'Limit FPS
+	While fps > 60
+		fps = vblanks/(Timer - vStart)
+		Sleep 1,1
+	Wend
+	'This gives the FPS timer a "resolution" so to speak.
+	'Every 1/4 of a second the timer is restarted and the old amount
+	'Is weighted and carried forward, this is so the game does not
+	'lag when switching from say a menu with low requirements to
+	'the main game.
+	If Timer - vStart >= 1 Then
+		vblanks = fps/2
+		vStart = Timer - .5
+	EndIf
+End sub
 
 '======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
 #Ifdef debugmode
@@ -475,7 +495,7 @@ start = Timer
 #Ifdef debugmode
 If logops = 1 Then Open "log.txt" For Output As #99
 #EndIf
-
+vstart = Timer
 Do
 	'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
 	#Ifdef debugmode
@@ -498,6 +518,7 @@ Do
 	clear_b '==========================================================HACKS==========================================================================================
 	If ticks >=113 And emulatorMode <> "6502" Then
 		ppuLoop
+		framelimit
 		ticks = 0
 	EndIf
 	#Ifdef debugmode
@@ -536,6 +557,7 @@ Do
 	#EndIf
 	'==================================================================================================================================================================
 	If opsPerSecond > opgoal Then Sleep 10
+	If fps > 60 Then Sleep 10
 Loop While Not MultiKey(SC_ESCAPE)
 Close
 CAE
