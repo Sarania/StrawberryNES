@@ -45,7 +45,7 @@ Function writePPUreg(ByVal addr As UShort, ByVal value As UByte) As ULongInt
 			EndIf
 			ppu.vrAddr And= &h3FFF
 		Case &h4014
-		Dim As UShort dmaaddr = value * &H100
+			Dim As UShort dmaaddr = value * &H100
 			for i as Uinteger = 0 to &hFF
 				ppu.sprRAM(i) = cpu.memory(dmaaddr+i)
 			Next
@@ -142,8 +142,8 @@ Sub renderSprites
 	#Define sprPriority (ppu.tempSPRram(spr,2) And 32) / 32
 	#Define spr16Address (ppu.tempSPRram(spr,1) And 1) * &h1000
 	#Define palAddress (ppu.tempSPRram(spr,2) And 3)
-	#Define flipY (ppu.tempSPRram(spr,2) And 128)
-	#Define flipX (ppu.tempSPRram(spr,2) And 64)
+	#Define flipY (ppu.tempSPRram(spr,2) And 128) / 128
+	#Define flipX (ppu.tempSPRram(spr,2) And 64) / 64
 	Dim As UInteger testPixel, pixcolor
 	Dim As Byte zstart, zstop, zstep, zoff, zyoff
 	Dim As UByte pixel, ubit, lbit, sprHeight = 7
@@ -160,10 +160,16 @@ Sub renderSprites
 			sprAddress = spr16Address
 			sprTileNumber = ppu.tempSPRram(spr,1) and &hFE ' mask out the low bit
 		EndIf
-		If flipY Then
+		If sprHeight = 15 Then
+			If ppu.scanline - ppu.tempSPRram(spr,0) > 8 Then
+				sprAddress+=8
+			End If
+		End If
+
+		If flipy and sprHeight = 7 Then
 			lbit = ppu.vram((sprAddress+((7-(ppu.scanline - ppu.tempSPRram(spr,0))))) + (16*sprTilenumber)+1)
 			ubit = ppu.vram((sprAddress+((7-(ppu.scanline - ppu.tempSPRram(spr,0))))) + ((16*sprTilenumber)+9))
-		Else
+      else
 			lbit = ppu.vram((sprAddress+((ppu.scanline - ppu.tempSPRram(spr,0)))) + (16*sprTilenumber)-1)
 			ubit = ppu.vram((sprAddress+((ppu.scanline - ppu.tempSPRram(spr,0)))) + ((16*sprTilenumber)+7))
 		End If
@@ -198,7 +204,7 @@ Sub renderSprites
 				EndIf
 			End If
 		Next
-		
+
 		skipthisOne:
 	Next
 	For spr As UByte = 0 To 7
@@ -230,9 +236,9 @@ Sub ppuLoop
 			ppu.attrbLine = PPUCTRL_NN + &h3C0 + ((ppu.scanline \ 32) * 8)
 			For z As UByte = 0 To 31
 				deriveAddresses(z) 'This sub derives the nametable and palette addresses for the background
-				renderBackground 'This sub renders the background in to the framebuffer array
+				If ppumask_b = 1 Then renderBackground 'This sub renders the background in to the framebuffer array
 				copySprites 'This sub copies the sprites for the current scanline from main sprite memory to temporary sprite memory
-				renderSprites 'This sub renders the sprites in to the framebuffer array
+				If ppumask_s = 1 Then renderSprites 'This sub renders the sprites in to the framebuffer array
 			next
 		Case 240 'post render scanline
 			ppuRender 'This sub renders the framebuffer array in to the main framebuffer while scaling according to the scalefactor

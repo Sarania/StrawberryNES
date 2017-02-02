@@ -246,6 +246,8 @@ Sub INS_BRK
 		cae
 	EndIf
 	'Break
+	set_u
+	set_b
 	cpu.PC += 1
 	writemem((cpu.sp+&h100),(cpu.pc Shr 8))
 	cpu.sp -=1
@@ -253,9 +255,7 @@ Sub INS_BRK
 	cpu.sp -=1
 	writemem(cpu.sp+&h100,cpu.ps)
 	cpu.sp -=1
-	set_b
 	set_i
-	set_u
 	Dim suspicious_pointer As UShort Ptr
 	Dim suspicious_array(0 To 1) As UByte
 	suspicious_array(0) = readmem(&HFFFE)
