@@ -237,9 +237,9 @@ Sub status 'This sub prints the status of various things to the screen
 	#Ifdef debugmode
 	Draw String framebuffer, (0,0), "Emulator mode: " & emulatorMode
 	Draw String framebuffer, (0,10), "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
-	Draw String framebuffer, (0,20), "Total ops: " & totalops & " | Stepping by: " & opstoskip
-	Draw String framebuffer, (0,30), "Ops per second: " &  opsPerSecond
-	Draw String framebuffer, (0,40), "Registers: "
+	Draw String framebuffer, (0,20), "Mapper: " & mapper
+	Draw String framebuffer, (0,30), "Total ops: " & totalops & " | Stepping by: " & opstoskip
+	Draw String framebuffer, (0,40), "Ops per second: " &  opsPerSecond
 	Draw String framebuffer, (0,50), "________________________"
 	Draw String framebuffer, (0,60), "A: " & IIf(cpu.acc < &h10,"0" & Hex(cpu.acc),Hex(cpu.acc)) & " X: " & IIf(cpu.x < &h10,"0" & Hex(cpu.x),Hex(cpu.x)) & " Y: " & IIf(cpu.y < &h10,"0" & Hex(cpu.y),Hex(cpu.y))
 	Draw String framebuffer, (0,70), "PC: " & cpu.PC & " ($" & Hex(cpu.pc) & ")"
