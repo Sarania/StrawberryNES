@@ -215,13 +215,12 @@ Sub renderSprites
 End Sub
 
 Sub ppuRender
-	Dim As UByte sf = 3
+	Dim As UByte sf = 2
 	Dim As UInteger xoff = screenx - (256*sf)
 	Dim As UInteger yoff = screeny - (240*sf)
 	For yyy As Integer = 0 To 239
 		For xxx As Integer = 0 To 255
 			For zzz As Integer = 0 To sf-1
-				'If ppubuffer(xxx,yyy) <> 0 AndAlso ppubuffer(xxx,yyy) <> -1 Then Line framebuffer, (xoff+(xxx*sf-sf),yoff+(yyy*sf-zzz))-(xoff+(xxx*sf),yoff+(yyy*sf-zzz)), ppubuffer(xxx,yyy)
 				If ppubuffer(xxx,yyy) <>  oldbuffer(xxx,yyy) Andalso ppubuffer(xxx,yyy) <> -1 Then Line nesbuffer, (xoff+(xxx*sf-sf),yoff+(yyy*sf-zzz))-(xoff+(xxx*sf),yoff+(yyy*sf-zzz)), ppubuffer(xxx,yyy)
 			Next
 		Next

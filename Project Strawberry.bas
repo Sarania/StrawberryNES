@@ -270,7 +270,7 @@ Sub clear_framebuffer 'Just clears the main framebuffer
 		Line framebuffer, (0,q)-(screenx,q), 0
 	Next
 	For yyy As UInteger = 0 To 239
-		For xxx As UInteger = 0 To 256
+		For xxx As UInteger = 0 To 255
 			oldbuffer(xxx,yyy) = ppubuffer(xxx,yyy)
 			ppubuffer(xxx,yyy) = -1
 		Next
@@ -396,7 +396,7 @@ End Sub
 sub frameLimit
 	fps = vblanks/(Timer - vStart)
 	'Limit FPS
-	While fps > 60
+	While fps > 600
 		fps = vblanks/(Timer - vStart)
 	Wend
 	'This gives the FPS timer a "resolution" so to speak.
