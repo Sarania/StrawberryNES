@@ -124,6 +124,7 @@ Sub get_data
 			cpu.pc+=1
 	End Select
 	If taddr = &h4016 Then cpu.memory(&h4016) = padRead
+	If taddr >= &h2000 And taddr <= &h3FFF Then cpu.memory(taddr) = readmem(taddr)
 	/'=========================================================================
 	                             NOTICE
 	==========================================================================='/

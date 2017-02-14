@@ -58,18 +58,18 @@ Function readPPUreg(ByVal addr As UShort)As ULongInt
 		Case &h2002
 			value = PPUSTATUS
 			PPUSTATUS = PPUSTATUS And &h7F
-			' ppu.addrLatch = 0
+			 'ppu.addrLatch = 0
 			'clear latch and scroll latch
 		Case &h2004
 			value = ppu.sprRAM(ppu.sprADDR)
-		Case &h2007
-			Dim As UInteger vraddr
-			vraddr = ppu.vraddr
-			If vraddr = &h3f10 OrElse vraddr = &h3f14 OrElse vraddr =&h3f18 OrElse vraddr = &h3f1c Then vraddr - = &h10
-			If vraddr >= &h3000 AndAlso vraddr <= &h3EFF Then vraddr And = &h1000
-			If vraddr >= &h3F20 AndAlso vraddr <= &h3fff Then vraddr And = &h3F1F
+		Case &h2007 'This section isn't working right!
+			'Dim As UInteger vraddr
+			'vraddr = ppu.vraddr
+			'If vraddr = &h3f10 OrElse vraddr = &h3f14 OrElse vraddr =&h3f18 OrElse vraddr = &h3f1c Then vraddr - = &h10
+			'If vraddr >= &h3000 AndAlso vraddr <= &h3EFF Then vraddr And = &h1000
+			'If vraddr >= &h3F20 AndAlso vraddr <= &h3fff Then vraddr And = &h3F1F
 			'If vraddr >= &h2800 AndAlso vraddr < &h3000 Then vraddr- = &h800
-			value = ppu.vram(vrAddr)
+			'value = ppu.vram(vrAddr)
 		Case else
 			'do
 	End Select
@@ -215,22 +215,24 @@ Sub renderSprites
 End Sub
 
 Sub ppuRender
-	Dim As UByte sf = 2
+	Dim As UByte sf = 3
 	Dim As UInteger xoff = screenx - (256*sf)
 	Dim As UInteger yoff = screeny - (240*sf)
 	For yyy As Integer = 0 To 239
 		For xxx As Integer = 0 To 255
 			For zzz As Integer = 0 To sf-1
-				If ppubuffer(xxx,yyy) <> 0 AndAlso ppubuffer(xxx,yyy) <> -1 Then Line framebuffer, (xoff+(xxx*sf-sf),yoff+(yyy*sf-zzz))-(xoff+(xxx*sf),yoff+(yyy*sf-zzz)), ppubuffer(xxx,yyy)
+				'If ppubuffer(xxx,yyy) <> 0 AndAlso ppubuffer(xxx,yyy) <> -1 Then Line framebuffer, (xoff+(xxx*sf-sf),yoff+(yyy*sf-zzz))-(xoff+(xxx*sf),yoff+(yyy*sf-zzz)), ppubuffer(xxx,yyy)
+				If ppubuffer(xxx,yyy) <>  oldbuffer(xxx,yyy) Andalso ppubuffer(xxx,yyy) <> -1 Then Line nesbuffer, (xoff+(xxx*sf-sf),yoff+(yyy*sf-zzz))-(xoff+(xxx*sf),yoff+(yyy*sf-zzz)), ppubuffer(xxx,yyy)
 			Next
 		Next
 	Next
+	Put framebuffer,(0,0),nesbuffer, trans
 End Sub
 Sub ppuLoop
 	Select Case ppu.scanline
 		Case -1 'prerender scanline
-			PPUSTATUS And= &h7F 'clear vblank flag
-			PPUSTATUS And= &hBF ' This clears the sprite zero bit
+		PPUSTATUS And= &h7F 'clear vblank flag
+		PPUSTATUS And= &hBF ' This clears the sprite zero bit
 		Case 0 To 239 'proper scanline
 			ppu.tableLine = PPUCTRL_NN + ((ppu.scanline \ 8) * 32)
 			ppu.attrbLine = PPUCTRL_NN + &h3C0 + ((ppu.scanline \ 32) * 8)
@@ -244,18 +246,13 @@ Sub ppuLoop
 			ppuRender 'This sub renders the framebuffer array in to the main framebuffer while scaling according to the scalefactor
 			push_framebuffer 'This sub pushes the framebuffer to the screen
 			vblanks+=1
-		Case 241 To 248
-			'dsfsdfs
-			If ppu.scanline = 247 Then
-				If PPUCTRL_V = 1 Then
-					nmi
-				EndIf
-			EndIf
-		Case Else 'vblank period
-			'stuff
-			ppustatus or=&h80 'set vblank flag
+		Case 241 To 262
+			If ppu.scanline = 241 Then ppustatus or=&h80 'set vblank flag
+			If ppu.scanline = 241 And PPUCTRL_V = 1 Then	nmi
 			ppu.curx=0
 			ppu.cury=0
+		Case Else 'shouldn't come here!
+			beep
 	End Select
 	ppu.scanline += 1
 	If ppu.scanline = 262 Then ppu.scanline = -1

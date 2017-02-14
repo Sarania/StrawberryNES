@@ -70,15 +70,17 @@ Declare Sub fail(ByVal op As String, ByVal expected As String, ByVal actual As S
 #EndIf
 Declare Sub push_framebuffer
 Declare Sub clear_framebuffer
-Declare Sub framelimit
+Declare Sub frameLimit
+Dim Shared As Any Ptr nesbuffer
 Dim Shared As UByte debug, mapper, trace_done = 0
-Dim Shared As UInteger opstoskip, nextskip, opGoal, ticks, romsize, screenx, screeny, starts, totalops, logops=0
+Dim Shared As UInteger opstoskip, nextskip, opGoal, romsize, screenx, screeny, starts, totalops, ticksPerSecond, logops=0
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
-Dim Shared As Single start, lastframetime,opsPerSecond, stepstart,fps, vstart
+Dim Shared As Single start, lastframetime,opsPerSecond, stepstart,fps, vstart, curtime
 Dim Shared As Any Ptr strawberry
+Dim Shared As ULongInt ticks, totalTicks
 Dim Shared As UInteger status_timer, vblanks
 Dim Shared As Any Ptr framebuffer
-Dim Shared As Integer PPUbuffer(256,240), backbuffer(256,240)
+Dim Shared As Integer PPUbuffer(256,240), backbuffer(256,240), oldbuffer(256,240)
 Dim Shared As uinteger masterPalette(64) = {&h545454, &h001E74, &h081090, &h300088, &h440064, &h5C0030, &h540400, &h3C1800, &h202A00, &h083A00, &h004000, &h003C00, &h00323C, &h000000, &h000000, &h000000, &h989698, &h084CC4, &h3032EC, &h5C1EE4, &h8814B0, &hA01464, &h982220, &h783C00, &h545A00, &h287200, &h087C00, &h007628, &h006678, &h000000, &h000000, &h000000, &hECEEEC, &h4C9AEC, &h787CEC, &hB062EC, &hE454EC, &hEC58B4, &hEC6A64, &hD48820, &hA0AA00, &h74C400, &h4CD020, &h38CC6C, &h38B4CC, &h3C3C3C, &h000000, &h000000, &hECEEEC, &hA8CCEC, &hBCBCEC, &hD4B2EC, &hECAEEC, &hECAED4, &hECB4B0, &hE4C490, &hCCD278, &hB4DE78, &hA8E290, &h98E2B4, &hA0D6E4, &hA0A2A0, &h000000, &h000000}
 Dim Shared As UByte button_counter, button(0 To 7)
 
@@ -192,6 +194,7 @@ Dim Shared header As headers 'iNES header
 #Define PPUADDR cpu.memory(&h2006)
 #Define PPUDATA cpu.memory(&h2007)
 #Define OAMDMA cpu.memory(&h4014)
+#Define vblank            (ppustatus And 128) / 128
 #define  PPUCTRL_V        ( ppuctrl And 128 ) / 128
 #Define  PPUCTRL_P        ( ppuctrl And 64 ) / 64
 #Define  PPUCTRL_H        ( ppuctrl And 32 ) / 32
@@ -239,7 +242,7 @@ Sub status 'This sub prints the status of various things to the screen
 	Draw String framebuffer, (0,10), "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
 	Draw String framebuffer, (0,20), "Mapper: " & mapper
 	Draw String framebuffer, (0,30), "Total ops: " & totalops & " | Stepping by: " & opstoskip
-	Draw String framebuffer, (0,40), "Ops per second: " &  opsPerSecond
+	Draw String framebuffer, (0,40), "Ops per second: " &  opsPerSecond & " | CPU Frequency: " &  Format(ticksPerSecond/1000000,"0.000") & "Mhz"
 	Draw String framebuffer, (0,50), "________________________"
 	Draw String framebuffer, (0,60), "A: " & IIf(cpu.acc < &h10,"0" & Hex(cpu.acc),Hex(cpu.acc)) & " X: " & IIf(cpu.x < &h10,"0" & Hex(cpu.x),Hex(cpu.x)) & " Y: " & IIf(cpu.y < &h10,"0" & Hex(cpu.y),Hex(cpu.y))
 	Draw String framebuffer, (0,70), "PC: " & cpu.PC & " ($" & Hex(cpu.pc) & ")"
@@ -268,6 +271,7 @@ Sub clear_framebuffer 'Just clears the main framebuffer
 	Next
 	For yyy As UInteger = 0 To 239
 		For xxx As UInteger = 0 To 256
+			oldbuffer(xxx,yyy) = ppubuffer(xxx,yyy)
 			ppubuffer(xxx,yyy) = -1
 		Next
 	Next
@@ -324,10 +328,9 @@ Sub nmi 'Non maskable interrupt
 End Sub
 
 Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As UShort
-	if addr >= &h800 and addr < &h2000 then addr And= &h800
+	If addr >= &h800 and addr < &h2000 then addr And= &h800
 	Select Case addr
 		Case &h2000 To &h3FFF
-			If addr = &h2002 Then cpu.memory(&h2002) And= 127
 			readmem = readPPUreg(addr And &h2007)
 		Case &h4015
 			'apu stuff
@@ -339,7 +342,7 @@ Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As USho
 			For q As UByte = 0 To numbytes-1
 				tempmem(q)=cpu.memory(addr+q)
 			Next
-			If addr = &hff Andalso numbytes = 2 Then tempmem(1) = cpu.memory(0)
+			If addr = &hff Andalso numbytes = 2 Then tempmem(1) = cpu.memory(0):ticks+=1:End if
 			suspicious_pointer=@tempmem(0)
 			readmem = *suspicious_pointer
 	End Select
@@ -395,7 +398,6 @@ sub frameLimit
 	'Limit FPS
 	While fps > 60
 		fps = vblanks/(Timer - vStart)
-		Sleep 1,1
 	Wend
 	'This gives the FPS timer a "resolution" so to speak.
 	'Every 1/4 of a second the timer is restarted and the old amount
@@ -486,6 +488,7 @@ End Sub
 ==================================================================================================================================================================='/
 ScreenRes screenx,screeny,32,2
 framebuffer = ImageCreate(screenx,screeny,RGB(0,0,0))
+nesbuffer = ImageCreate(screenx,screeny,RGB(255,0,255))
 strawberry = freeimage_load_fb(CurDir & "/Res/SBNES.png", TRUE) ' load cute strawberry :)
 initcpu 'initialize the 6502 and 2C02
 loadROM 'load file into ROM and cpu memory
@@ -506,7 +509,10 @@ Do
 	cpu.oldx = cpu.X
 	cpu.oldy = cpu.y
 	cpu.oldpc = cpu.pc 'this is for storing debug information
-	opsPerSecond = totalops / (Timer-start)
+	curtime = (Timer-start)
+	opsPerSecond = totalops/curtime
+	ticksPerSecond = TotalTicks/curtime
+	
 	#EndIf
 	'==================================================================================================================================================================
 	'====================================REMOVE THIS======================================================
@@ -517,9 +523,10 @@ Do
 	totalops+=1
 	decode_and_execute(cpu.memory(cpu.pc-1)) ' decode the binary located at the PC to opcode and address mode and then execute the instruction
 	clear_b '==========================================================HACKS==========================================================================================
-	If ticks >=213 And emulatorMode <> "6502" Then
+	If ticks >=111 And emulatorMode <> "6502" Then 
 		ppuLoop
 		frameLimit
+		totalTicks+=ticks
 		ticks = 0
 	EndIf
 	#Ifdef debugmode
@@ -557,7 +564,7 @@ Do
 	If logops = 1 Then write_the_log
 	#EndIf
 	'==================================================================================================================================================================
-	If opsPerSecond > opgoal Then Sleep 10
+	If opsPerSecond > opgoal And emulatorMode = "6502" Then Sleep 10
 Loop While Not MultiKey(SC_ESCAPE)
 Close
 CAE
