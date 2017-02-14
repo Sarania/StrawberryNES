@@ -58,18 +58,18 @@ Function readPPUreg(ByVal addr As UShort)As ULongInt
 		Case &h2002
 			value = PPUSTATUS
 			PPUSTATUS = PPUSTATUS And &h7F
-			 'ppu.addrLatch = 0
+			'ppu.addrLatch = 0
 			'clear latch and scroll latch
 		Case &h2004
 			value = ppu.sprRAM(ppu.sprADDR)
 		Case &h2007 'This section isn't working right!
-			'Dim As UInteger vraddr
-			'vraddr = ppu.vraddr
-			'If vraddr = &h3f10 OrElse vraddr = &h3f14 OrElse vraddr =&h3f18 OrElse vraddr = &h3f1c Then vraddr - = &h10
-			'If vraddr >= &h3000 AndAlso vraddr <= &h3EFF Then vraddr And = &h1000
-			'If vraddr >= &h3F20 AndAlso vraddr <= &h3fff Then vraddr And = &h3F1F
-			'If vraddr >= &h2800 AndAlso vraddr < &h3000 Then vraddr- = &h800
-			'value = ppu.vram(vrAddr)
+			Dim As UInteger vraddr
+			vraddr = ppu.vraddr
+			If vraddr = &h3f10 OrElse vraddr = &h3f14 OrElse vraddr =&h3f18 OrElse vraddr = &h3f1c Then vraddr - = &h10
+			If vraddr >= &h3000 AndAlso vraddr <= &h3EFF Then vraddr And = &h1000
+			If vraddr >= &h3F20 AndAlso vraddr <= &h3fff Then vraddr And = &h3F1F
+			If vraddr >= &h2800 AndAlso vraddr < &h3000 Then vraddr- = &h800
+			value = ppu.vram(vrAddr)
 		Case else
 			'do
 	End Select
@@ -145,12 +145,10 @@ Sub renderSprites
 	#Define flipY (ppu.tempSPRram(spr,2) And 128) / 128
 	#Define flipX (ppu.tempSPRram(spr,2) And 64) / 64
 	Dim As UInteger testPixel, pixcolor
-	Dim As Byte zstart, zstop, zstep, zoff, zyoff
+	Dim As Byte zstart, zstop, zstep, zoff, tile16=1
 	Dim As UByte pixel, ubit, lbit, sprHeight = 7
-	Dim As UInteger sprTileNumber, xoff, yoff, sprAddress, paletteaddr, Ppalette
+	Dim As UInteger sprTileNumber, sprAddress, paletteaddr, Ppalette
 	If PPUCTRL_H Then sprHeight = 15
-	xoff = screenx-512
-	yoff = screeny-480
 	For spr As Byte = 7 To 0 Step -1
 		If ppu.tempSPRram(spr,0) = 0 Then GoTo skipThisOne
 		If sprHeight = 7 Then
@@ -160,16 +158,20 @@ Sub renderSprites
 			sprAddress = spr16Address
 			sprTileNumber = ppu.tempSPRram(spr,1) and &hFE ' mask out the low bit
 		EndIf
-		If sprHeight = 15 Then
+		If ppu.scanline - ppu.tempSPRram(spr,0) > 8 Then tile16=2
+		If sprHeight = 15 And flipy = 0 Then
 			If ppu.scanline - ppu.tempSPRram(spr,0) > 8 Then
 				sprAddress+=8
 			End If
+		ElseIf sprHeight = 15 And flipy = 1 Then
+			If tile16 = 1 Then sprAddress = spr16Address+8
+			if tile16 = 2 then sprAddress = spr16Address
 		End If
 
-		If flipy and sprHeight = 7 Then
-			lbit = ppu.vram((sprAddress+((7-(ppu.scanline - ppu.tempSPRram(spr,0))))) + (16*sprTilenumber)+1)
-			ubit = ppu.vram((sprAddress+((7-(ppu.scanline - ppu.tempSPRram(spr,0))))) + ((16*sprTilenumber)+9))
-      else
+		If flipy = 1 Then
+			lbit = ppu.vram((sprAddress+((sprHeight-(ppu.scanline - ppu.tempSPRram(spr,0))))) + (16*sprTilenumber)+1)
+			ubit = ppu.vram((sprAddress+((sprHeight-(ppu.scanline - ppu.tempSPRram(spr,0))))) + ((16*sprTilenumber)+9))
+		else
 			lbit = ppu.vram((sprAddress+((ppu.scanline - ppu.tempSPRram(spr,0)))) + (16*sprTilenumber)-1)
 			ubit = ppu.vram((sprAddress+((ppu.scanline - ppu.tempSPRram(spr,0)))) + ((16*sprTilenumber)+7))
 		End If
@@ -191,6 +193,8 @@ Sub renderSprites
 			lbit Shl = 1
 			ubit Shl = 1
 			pixcolor = masterpalette((pPalette Shr (pixel * 8) AND &hff))
+				'If tile16 = 1 Then pixcolor = RGB(pixel*85,0,0)
+				''If tile16 = 2 Then pixcolor = RGB(0,0,pixel*85)
 			testPixel = ppuBuffer(ppu.tempSPRram(spr,3)+zz,ppu.scanline)
 			If pixel <> 0 Then
 				If sprPriority = 0 Then
@@ -204,7 +208,6 @@ Sub renderSprites
 				EndIf
 			End If
 		Next
-
 		skipthisOne:
 	Next
 	For spr As UByte = 0 To 7
@@ -230,8 +233,8 @@ End Sub
 Sub ppuLoop
 	Select Case ppu.scanline
 		Case -1 'prerender scanline
-		PPUSTATUS And= &h7F 'clear vblank flag
-		PPUSTATUS And= &hBF ' This clears the sprite zero bit
+			PPUSTATUS And= &h7F 'clear vblank flag
+			PPUSTATUS And= &hBF ' This clears the sprite zero bit
 		Case 0 To 239 'proper scanline
 			ppu.tableLine = PPUCTRL_NN + ((ppu.scanline \ 8) * 32)
 			ppu.attrbLine = PPUCTRL_NN + &h3C0 + ((ppu.scanline \ 32) * 8)

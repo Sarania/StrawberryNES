@@ -396,7 +396,7 @@ End Sub
 sub frameLimit
 	fps = vblanks/(Timer - vStart)
 	'Limit FPS
-	While fps > 600
+	While fps > 60
 		fps = vblanks/(Timer - vStart)
 	Wend
 	'This gives the FPS timer a "resolution" so to speak.
