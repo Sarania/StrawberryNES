@@ -55,6 +55,8 @@ Declare Sub initcpu 'initialize the 6502
 Declare Sub loadROM 'load a ROM in to memory
 Declare Sub CAE 'Cleanup and exit
 Declare Sub loadini 'Load the ini file
+Declare Sub writeini
+Declare Sub options
 Declare Sub nmi
 #ifdef debugmode
 '======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
@@ -72,17 +74,28 @@ Declare Sub push_framebuffer
 Declare Sub clear_framebuffer
 Declare Sub frameLimit
 Dim Shared As Any Ptr nesbuffer
-Dim Shared As UByte debug, mapper, trace_done = 0
-Dim Shared As UInteger opstoskip, nextskip, opGoal, romsize, screenx, screeny, starts, totalops, ticksPerSecond, logops=0
+Dim Shared As UByte debug, mapper, spritehit = 0, trace_done = 0, flimit = 1, sf = 2, forcerender = 0
+Dim Shared As UInteger opstoskip, nextskip, opGoal, romsize, screenx, screeny, centerx, centery, totalops, ticksPerSecond, logops=0
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
 Dim Shared As Single start, lastframetime,opsPerSecond, stepstart,fps, vstart, curtime
 Dim Shared As Any Ptr strawberry
 Dim Shared As ULongInt ticks, totalTicks
-Dim Shared As UInteger status_timer, vblanks
+Dim Shared As UInteger status_timer, vblanks, mousex,mousey, mousebuttons
+Dim shared As Integer mousewheel
 Dim Shared As Any Ptr framebuffer
 Dim Shared As Integer PPUbuffer(256,240), backbuffer(256,240), oldbuffer(256,240)
 Dim Shared As uinteger masterPalette(64) = {&h545454, &h001E74, &h081090, &h300088, &h440064, &h5C0030, &h540400, &h3C1800, &h202A00, &h083A00, &h004000, &h003C00, &h00323C, &h000000, &h000000, &h000000, &h989698, &h084CC4, &h3032EC, &h5C1EE4, &h8814B0, &hA01464, &h982220, &h783C00, &h545A00, &h287200, &h087C00, &h007628, &h006678, &h000000, &h000000, &h000000, &hECEEEC, &h4C9AEC, &h787CEC, &hB062EC, &hE454EC, &hEC58B4, &hEC6A64, &hD48820, &hA0AA00, &h74C400, &h4CD020, &h38CC6C, &h38B4CC, &h3C3C3C, &h000000, &h000000, &hECEEEC, &hA8CCEC, &hBCBCEC, &hD4B2EC, &hECAEEC, &hECAED4, &hECB4B0, &hE4C490, &hCCD278, &hB4DE78, &hA8E290, &h98E2B4, &hA0D6E4, &hA0A2A0, &h000000, &h000000}
 Dim Shared As UByte button_counter, button(0 To 7)
+Dim Shared As UInteger res(10,10)
+res(1,1) = 640
+res(1,2) = 480
+res(2,1) = 800
+res(2,2) = 600
+res(3,1) = 1024
+res(3,2) = 768
+res(4,1) = 1280
+res(4,2) = 960
+
 
 
 Type cpus
@@ -239,23 +252,24 @@ Sub status 'This sub prints the status of various things to the screen
 	'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
 	#Ifdef debugmode
 	Draw String framebuffer, (0,0), "Emulator mode: " & emulatorMode
-	Draw String framebuffer, (0,10), "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
-	Draw String framebuffer, (0,20), "Mapper: " & mapper
-	Draw String framebuffer, (0,30), "Total ops: " & totalops & " | Stepping by: " & opstoskip
-	Draw String framebuffer, (0,40), "Ops per second: " &  opsPerSecond & " | CPU Frequency: " &  Format(ticksPerSecond/1000000,"0.000") & "Mhz"
-	Draw String framebuffer, (0,50), "________________________"
-	Draw String framebuffer, (0,60), "A: " & IIf(cpu.acc < &h10,"0" & Hex(cpu.acc),Hex(cpu.acc)) & " X: " & IIf(cpu.x < &h10,"0" & Hex(cpu.x),Hex(cpu.x)) & " Y: " & IIf(cpu.y < &h10,"0" & Hex(cpu.y),Hex(cpu.y))
-	Draw String framebuffer, (0,70), "PC: " & cpu.PC & " ($" & Hex(cpu.pc) & ")"
-	Draw String framebuffer, (0,80), "Stack pointer: " & cpu.sp & "($" & Hex(cpu.sp) & ")"
-	Draw String framebuffer, (0,100), "N   V   -   B   D   I   Z   C"
-	Draw String framebuffer, (0,110), Flag_S & "   " & Flag_V & "   " & flag_U & "   " & flag_B & "   " & flag_D & "   " & flag_I & "   " & flag_Z & "   " & flag_C
-	Draw String framebuffer, (0,130), "Processor status: " & cpu.ps & " " & " (" & Hex(cpu.ps) & ")"
-	Draw String framebuffer, (0,140), "Message: " & msg
+	Draw String framebuffer, (0,10), "Mouse - X:" & mousex & " Y:"& mousey & " Buttons:" & mousebuttons & " Wheel:" & mousewheel
+	Draw String framebuffer, (0,20), "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
+	Draw String framebuffer, (0,30), "Mapper: " & mapper
+	Draw String framebuffer, (0,40), "Total ops: " & totalops & " | Stepping by: " & opstoskip
+	Draw String framebuffer, (0,50), "Ops per second: " &  opsPerSecond & " | CPU Frequency: " &  Format(ticksPerSecond/1000000,"0.000") & "Mhz"
+	Draw String framebuffer, (0,60), "________________________"
+	Draw String framebuffer, (0,70), "A: " & IIf(cpu.acc < &h10,"0" & Hex(cpu.acc),Hex(cpu.acc)) & " X: " & IIf(cpu.x < &h10,"0" & Hex(cpu.x),Hex(cpu.x)) & " Y: " & IIf(cpu.y < &h10,"0" & Hex(cpu.y),Hex(cpu.y))
+	Draw String framebuffer, (0,80), "PC: " & cpu.PC & " ($" & Hex(cpu.pc) & ")"
+	Draw String framebuffer, (0,90), "Stack pointer: " & cpu.sp & "($" & Hex(cpu.sp) & ")"
+	Draw String framebuffer, (0,110), "N   V   -   B   D   I   Z   C"
+	Draw String framebuffer, (0,120), Flag_S & "   " & Flag_V & "   " & flag_U & "   " & flag_B & "   " & flag_D & "   " & flag_I & "   " & flag_Z & "   " & flag_C
+	Draw String framebuffer, (0,140), "Processor status: " & cpu.ps & " " & " (" & Hex(cpu.ps) & ")"
+	Draw String framebuffer, (0,150), "Message: " & msg
 	'msg = ""
-	Draw String framebuffer, (0,150), "Trace: "
-	Line framebuffer, (0,95)-(240,120),RGB(255,255,255),b
+	Draw String framebuffer, (0,160), "Trace: "
+	Line framebuffer, (0,100)-(240,130),RGB(255,255,255),b
 	For q As UByte = 1 To 60
-		Draw String framebuffer, (0,150 + (q*10)), opHistory(q)
+		Draw String framebuffer, (0,160 + (q*10)), opHistory(q)
 	Next
 	#EndIf
 	'==================================================================================================================================================================
@@ -320,7 +334,7 @@ Sub nmi 'Non maskable interrupt
 	suspicious_array(1) = readmem(&HFFFB)
 	suspicious_pointer = @suspicious_array(0)
 	cpu.pc = *suspicious_pointer
-	ticks+=7	
+	ticks+=7
 	'For i As Integer = 255 To 1 Step -1
 	'	opHistory(i) = opHistory(i-1)
 	'Next
@@ -378,15 +392,31 @@ Sub loadini 'load the ini. Duh.
 		Print #f, 640
 		Print #f, 480
 		Print #f, 10000
+		Print #f, 1
+		Print #f, 1
 		Close #f
 	EndIf
 	Open ExePath & "\strawberry.ini" For Input As #f
 	Input #f, screenx
 	Input #f, screeny
 	Input #f, opgoal
+	Input #f, flimit
+	Input #f, sf
 	Close #f
+	centerx = screenx/2
+	centery = screeny/2
 End Sub
 
+Sub writeini 'write out a new ini
+	Dim f As UByte = FreeFile
+	Open ExePath & "\strawberry.ini" For output As #f
+	Print #f, screenx
+	Print #f, screeny
+	Print #f, opgoal
+	Print #f, fLimit
+	Print #f, sf
+	Close #f
+End Sub
 Sub CAE
 	If strawberry Then ImageDestroy(Strawberry)
 	Close
@@ -396,9 +426,11 @@ End Sub
 sub frameLimit
 	fps = vblanks/(Timer - vStart)
 	'Limit FPS
-	While fps > 60
-		fps = vblanks/(Timer - vStart)
-	Wend
+	If flimit = 1 Then
+		While fps > 60
+			fps = vblanks/(Timer - vStart)
+		Wend
+	End if
 	'This gives the FPS timer a "resolution" so to speak.
 	'Every 1/4 of a second the timer is restarted and the old amount
 	'Is weighted and carried forward, this is so the game does not
@@ -408,7 +440,120 @@ sub frameLimit
 		vblanks = fps/2
 		vStart = Timer - .5
 	EndIf
-End sub
+End Sub
+
+Sub options
+	While MultiKey(SC_O):Sleep 1,1:wend
+	Dim As UInteger optXsize=500, optYsize=300
+	Dim As UInteger halfX = optXsize / 2, halfY = optYsize/2
+	Dim As uinteger tempcolor = RGB(255,255,255)
+	Dim As Integer oldwheel
+	Dim As UByte resindex, firstloop = 1
+	For qq As Integer = 0 To 9
+		If screenx = res(qq,1) Then resindex = qq
+	Next
+	Do
+		oldwheel = mousewheel
+		GetMouse(mousex,mousey,mousewheel,mousebuttons)
+		If firstloop = 1 Then
+			oldwheel = mousewheel
+			firstloop = 0
+		EndIf
+		Put(0,0),framebuffer,PSet
+		clear_framebuffer
+		Line framebuffer, (centerx - halfx, centery-halfY)-(centerx + halfx, centery+halfy), RGB(0,50,150), BF
+		Line framebuffer, (centerx - halfx, centery-halfY)-(centerx + halfx, centery-(halfy-10)), RGB(0,30,80), BF
+		Line framebuffer, (centerx - halfx, centery-(halfy-10))-(centerx + halfx, centery-(halfy-10)), RGB(255,255,255)
+		Line framebuffer, (centerx - halfx, centery-halfY)-(centerx + halfx, centery+halfy), RGB(255,255,255),B
+		draw String framebuffer, (centerx-28,centery-(halfy-1)), "Options"
+		If mousex > (centerx - halfx) And mousex < ((centerx-halfx)+184) Then
+			If mousey > (centery - halfy +(10)) And mousey < (centery - halfy +(25)) Then
+				tempcolor = RGB(150,0,255)
+				If mousewheel <> oldwheel Then
+					flimit+= (mousewheel-oldwheel)
+					If flimit = 2 Then flimit = 0
+					If flimit > 2 Then flimit = 1
+					totalops = opgoal * (Timer-start) 'force totalops to be "where it should" since we are changing the goal
+				EndIf
+			EndIf
+		EndIf
+		Draw String framebuffer, (centerx-halfX,(centery-halfy)+15), "Enable frame limit: " & IIf(flimit = 1, "Yes", "No"), tempcolor
+		tempcolor = RGB(255,255,255)
+
+		If mousex > (centerx - halfx) And mousex < ((centerx-halfx)+208) Then
+			If mousey > (centery - halfy +(24)) And mousey < (centery - halfy +(39)) Then
+				tempcolor = RGB(150,0,255)
+				If mousewheel <> oldwheel Then
+					sf+= (mousewheel-oldwheel)
+					If 256*sf > screenx Or 240*sf > screeny Then sf -=1
+					If SF = 0 Then SF = 1
+					For q As UInteger = 0 To screeny
+						Line nesbuffer, (0,q)-(screenx,q), 0'Blank the nes buffer since the scaling size has changed
+					Next
+					forcerender = 1 'force next frame to render ALL pixels since we blanked the framebuffer
+				EndIf
+			EndIf
+		EndIf
+		Draw String framebuffer, (centerx-halfx,(centery-halfy)+30), "NES image scale factor: " & sf & "x", tempcolor
+		tempcolor = RGB(255,255,255)
+
+		If mousex > (centerx - halfx) And mousex < ((centerx-halfx)+370) Then
+			If mousey > (centery - halfy +(38)) And mousey < (centery - halfy +(53)) Then
+				tempcolor = RGB(150,0,255)
+				If mousewheel <> oldwheel Then
+					opgoal += (mousewheel -oldwheel) * 500
+					totalops = opgoal * (Timer-start) 'force totalops to be "where it should" since we are changing the goal
+				EndIf
+			EndIf
+		EndIf
+		Draw String framebuffer, (centerx-halfx,(centery-halfy)+45), "Op/second limit for simple 6502 programs: " & opgoal, tempcolor
+		tempcolor = RGB(255,255,255)
+
+		If mousex > (centerx - halfx) And mousex < ((centerx-halfx)+182) Then
+			If mousey > (centery - halfy +(52)) And mousey < (centery - halfy +(67)) Then
+				tempcolor = RGB(150,0,255)
+				If mousewheel <> oldwheel Then
+					resindex += (mousewheel-oldwheel)
+					If resindex = 0 Then resindex = 1
+					If res(resindex,1) = 0 Then resindex-=1
+				EndIf
+			EndIf
+		EndIf
+		Draw String framebuffer, (centerx-halfx,(centery-halfy)+60), "Window size: " & res(resindex,1) & "x" & res(resindex,2), tempcolor
+		tempcolor = RGB(255,255,255)
+
+		status
+		If mousex < screenx And mousey < screeny Then
+			While mousebuttons <> 0
+				GetMouse(mousex,mousey,,mousebuttons)
+				Sleep 1,1
+			Wend
+		End If
+		Draw String framebuffer, (centerx-halfx,centery+halfy-25), "Use mousewheel to change highlighted values!", RGB(255,255,255)
+		Draw String framebuffer, (centerx-halfx,centery+halfy-10), "Press O to return to emulation!", RGB(255,255,255)
+	Loop While Not MultiKey(SC_O) And Not MultiKey(SC_ESCAPE)
+	If MultiKey(SC_ESCAPE) Then CAE
+	If res(resindex,1) <> screenx Then
+		screenx = res(resindex,1)
+		screeny = res(resindex,2)
+		centerx = screenx/2
+		centery = screeny/2
+		ImageDestroy(framebuffer)
+		ImageDestroy(nesbuffer)
+		framebuffer = ImageCreate(screenx,screeny,RGB(0,0,0))
+		nesbuffer = ImageCreate(screenx,screeny,RGB(255,0,255))
+		ScreenRes(screenx,screeny,32)
+		While sf*256 > ScreenX or sf*240 > screeny
+			sf-=1
+			If sf = 1 Then Exit while
+		Wend
+		For q As UInteger = 0 To screeny
+			Line nesbuffer, (0,q)-(screenx,q), 0'Blank the nes buffer since the scaling size has changed
+		Next
+		forcerender = 1 'force next frame to render ALL pixels since we blanked the framebuffer
+	End If
+	writeini
+End Sub
 
 '======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
 #Ifdef debugmode
@@ -486,7 +631,7 @@ End Sub
 /'=================================================================================================================================================================
                                                                  Main program
 ==================================================================================================================================================================='/
-ScreenRes screenx,screeny,32,2
+ScreenRes screenx,screeny,32
 framebuffer = ImageCreate(screenx,screeny,RGB(0,0,0))
 nesbuffer = ImageCreate(screenx,screeny,RGB(255,0,255))
 strawberry = freeimage_load_fb(CurDir & "/Res/SBNES.png", TRUE) ' load cute strawberry :)
@@ -512,7 +657,7 @@ Do
 	curtime = (Timer-start)
 	opsPerSecond = totalops/curtime
 	ticksPerSecond = TotalTicks/curtime
-	
+
 	#EndIf
 	'==================================================================================================================================================================
 	'====================================REMOVE THIS======================================================
@@ -523,7 +668,7 @@ Do
 	totalops+=1
 	decode_and_execute(cpu.memory(cpu.pc-1)) ' decode the binary located at the PC to opcode and address mode and then execute the instruction
 	clear_b '==========================================================HACKS==========================================================================================
-	If ticks >=111 And emulatorMode <> "6502" Then 
+	If ticks >=112 And emulatorMode <> "6502" Then
 		ppuLoop
 		frameLimit
 		totalTicks+=ticks
@@ -564,7 +709,7 @@ Do
 	If logops = 1 Then write_the_log
 	#EndIf
 	'==================================================================================================================================================================
-	If opsPerSecond > opgoal And emulatorMode = "6502" Then Sleep 10
+	If opsPerSecond > opgoal And emulatorMode = "6502" And flimit = 1 Then Sleep 10
 Loop While Not MultiKey(SC_ESCAPE)
 Close
 CAE

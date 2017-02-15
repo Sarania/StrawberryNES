@@ -71,7 +71,6 @@ Function readPPUreg(ByVal addr As UShort)As ULongInt
 			If vraddr >= &h2800 AndAlso vraddr < &h3000 Then vraddr- = &h800
 			value = ppu.vram(vrAddr)
 		Case else
-			'do
 	End Select
 	Return value
 End Function
@@ -193,18 +192,19 @@ Sub renderSprites
 			lbit Shl = 1
 			ubit Shl = 1
 			pixcolor = masterpalette((pPalette Shr (pixel * 8) AND &hff))
-				'If tile16 = 1 Then pixcolor = RGB(pixel*85,0,0)
-				''If tile16 = 2 Then pixcolor = RGB(0,0,pixel*85)
-			testPixel = ppuBuffer(ppu.tempSPRram(spr,3)+zz,ppu.scanline)
+			'If tile16 = 1 Then pixcolor = RGB(pixel*85,0,0)
+			''If tile16 = 2 Then pixcolor = RGB(0,0,pixel*85)
+			testPixel = ppuBuffer((ppu.tempSPRram(spr,3)+zz),ppu.scanline)
 			If pixel <> 0 Then
 				If sprPriority = 0 Then
-					ppuBuffer(ppu.tempSPRram(spr,3)+zz,ppu.scanline) =  pixcolor
+					ppuBuffer((ppu.tempSPRram(spr,3)+zz),ppu.scanline) =  pixcolor
 				ElseIf sprPriority = 1 and (testpixel = -1 Or testpixel = 0) Then
 					ppuBuffer((ppu.tempSPRram(spr,3)+zz),ppu.scanline) = pixcolor
 				EndIf
-				If spr = 0 And testpixel <> -1 Then
+				If (spr = 0) And (testpixel <> -1) And (spritehit = 0) Then
 					ppuBuffer((ppu.tempSPRram(spr,3)+zz),ppu.scanline) = pixcolor
 					PPUSTATUS Or= &H40
+					spritehit = 1
 				EndIf
 			End If
 		Next
@@ -218,13 +218,17 @@ Sub renderSprites
 End Sub
 
 Sub ppuRender
-	Dim As UByte sf = 2
 	Dim As UInteger xoff = screenx - (256*sf)
 	Dim As UInteger yoff = screeny - (240*sf)
 	For yyy As Integer = 0 To 239
 		For xxx As Integer = 0 To 255
 			For zzz As Integer = 0 To sf-1
-				If ppubuffer(xxx,yyy) <>  oldbuffer(xxx,yyy) Andalso ppubuffer(xxx,yyy) <> -1 Then Line nesbuffer, (xoff+(xxx*sf-sf),yoff+(yyy*sf-zzz))-(xoff+(xxx*sf),yoff+(yyy*sf-zzz)), ppubuffer(xxx,yyy)
+				If ppubuffer(xxx,yyy) <>  oldbuffer(xxx,yyy) Andalso ppubuffer(xxx,yyy) <> -1 Then
+					Line nesbuffer, (xoff+(xxx*sf-sf),yoff+(yyy*sf-zzz))-(xoff+(xxx*sf),yoff+(yyy*sf-zzz)), ppubuffer(xxx,yyy)
+				ElseIf forcerender = 1 Then
+					Line nesbuffer, (xoff+(xxx*sf-sf),yoff+(yyy*sf-zzz))-(xoff+(xxx*sf),yoff+(yyy*sf-zzz)), ppubuffer(xxx,yyy)
+					forcerender = 0
+				End if
 			Next
 		Next
 	Next
@@ -235,6 +239,7 @@ Sub ppuLoop
 		Case -1 'prerender scanline
 			PPUSTATUS And= &h7F 'clear vblank flag
 			PPUSTATUS And= &hBF ' This clears the sprite zero bit
+			spritehit = 0
 		Case 0 To 239 'proper scanline
 			ppu.tableLine = PPUCTRL_NN + ((ppu.scanline \ 8) * 32)
 			ppu.attrbLine = PPUCTRL_NN + &h3C0 + ((ppu.scanline \ 32) * 8)

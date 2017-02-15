@@ -28,6 +28,11 @@ Sub keycheck
 		nextskip = opstoskip
 		While MultiKey(SC_PAGEUP):Sleep 10: wend
 	EndIf
+	
+	If MultiKey(SC_O) Then
+		options
+		While MultiKey(SC_O):Sleep 10: wend
+	EndIf
 
 	If emulatorMode = "6502" Then
 		If MultiKey(SC_w) Then
