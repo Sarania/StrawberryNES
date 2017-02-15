@@ -74,7 +74,7 @@ Declare Sub push_framebuffer
 Declare Sub clear_framebuffer
 Declare Sub frameLimit
 Dim Shared As Any Ptr nesbuffer
-Dim Shared As UByte debug, mapper, spritehit = 0, trace_done = 0, flimit = 1, sf = 2, forcerender = 0
+Dim Shared As UByte debug, mapper, spritehit = 0, trace_done = 0, flimit = 1, sf = 2, forcerender = 0, do_trace = 1
 Dim Shared As UInteger opstoskip, nextskip, opGoal, romsize, screenx, screeny, centerx, centery, totalops, ticksPerSecond, logops=0
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
 Dim Shared As Single start, lastframetime,opsPerSecond, stepstart,fps, vstart, curtime
@@ -394,6 +394,7 @@ Sub loadini 'load the ini. Duh.
 		Print #f, 10000
 		Print #f, 1
 		Print #f, 1
+		Print #f, 0
 		Close #f
 	EndIf
 	Open ExePath & "\strawberry.ini" For Input As #f
@@ -402,6 +403,7 @@ Sub loadini 'load the ini. Duh.
 	Input #f, opgoal
 	Input #f, flimit
 	Input #f, sf
+	Input #f, do_trace
 	Close #f
 	centerx = screenx/2
 	centery = screeny/2
@@ -415,6 +417,7 @@ Sub writeini 'write out a new ini
 	Print #f, opgoal
 	Print #f, fLimit
 	Print #f, sf
+	Print #f, do_trace
 	Close #f
 End Sub
 Sub CAE
@@ -521,6 +524,20 @@ Sub options
 		EndIf
 		Draw String framebuffer, (centerx-halfx,(centery-halfy)+60), "Window size: " & res(resindex,1) & "x" & res(resindex,2), tempcolor
 		tempcolor = RGB(255,255,255)
+		
+		If mousex > (centerx - halfx) And mousex < ((centerx-halfx)+248) Then
+			If mousey > (centery - halfy +(66)) And mousey < (centery - halfy +(82)) Then
+				tempcolor = RGB(150,0,255)
+				If mousewheel <> oldwheel Then
+					do_trace+= (mousewheel-oldwheel)
+					If do_trace = 2 Then do_trace = 0
+					If do_trace > 2 Then do_trace = 1
+					totalops = opgoal * (Timer-start) 'force totalops to be "where it should" since we are changing the goal
+				EndIf
+			EndIf
+		EndIf
+		Draw String framebuffer, (centerx-halfx,(centery-halfy)+75), "Enable opcode trace(slow!): " & IIf(do_trace = 1, "Yes", "No"), tempcolor
+		tempcolor = RGB(255,255,255)
 
 		status
 		If mousex < screenx And mousey < screeny Then
@@ -552,6 +569,12 @@ Sub options
 		Next
 		forcerender = 1 'force next frame to render ALL pixels since we blanked the framebuffer
 	End If
+	
+	If do_trace = 0 Then
+		For qq As Uinteger = 0 To 255
+			ophistory(qq) = ""
+		Next
+	EndIf
 	writeini
 End Sub
 
