@@ -161,11 +161,14 @@ Type ppus
 	tableLine As UInteger
 	attrbLine As UInteger
 	curAttrb As UInteger
-	Palette As UInteger
+	paletteIndex As UInteger
+	finalPalette As UInteger
+	curPixel As UByte
+	sprCount As UByte
+	sprHeight As UByte
 	ubit As UByte
 	lbit As Ubyte
 	curx As UInteger
-	cury As uinteger
 End Type
 
 Type headers
@@ -345,7 +348,7 @@ Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As USho
 	If addr >= &h800 and addr < &h2000 then addr And= &h800
 	Select Case addr
 		Case &h2000 To &h3FFF
-			readmem = readPPUreg(addr And &h2007)
+			readmem = readPPUreg(addr)
 		Case &h4015
 			'apu stuff
 		Case &h4016
@@ -369,7 +372,7 @@ Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write memory
 		if addr >= &h800 and addr < &h2000 then addr And= &h800
 		Select Case addr
 			Case &h2000 To &h3FFF
-				writePPUreg(addr And &h2007, value)
+				writePPUreg(addr, value)
 			Case &h4014
 				writePPUreg(&H4014,value)
 			Case &h4000 To &h4015, &h4017

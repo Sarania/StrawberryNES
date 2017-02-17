@@ -1,6 +1,6 @@
 Declare Sub ppuLoop
 Declare Sub ppuRender
-Declare Sub renderBackground
+Declare Sub renderBackground(ByVal z As UByte)
 Declare Sub copySprites
 Declare Sub renderSprites
 Declare Sub deriveAddresses(ByVal z As UByte)
@@ -32,8 +32,7 @@ Function writePPUreg(ByVal addr As UShort, ByVal value As UByte) As ULongInt
 				ppu.vrAddr And= &h3FFF
 			endif
 		Case &h2007
-			Dim As UInteger vraddr
-			vraddr = ppu.vraddr
+			Dim As UInteger vraddr = ppu.vraddr
 			If vraddr = &h3f10 OrElse vraddr = &h3f14 OrElse vraddr =&h3f18 OrElse vraddr = &h3f1c Then vraddr - = &h10
 			If vraddr >= &h3000 AndAlso vraddr <= &h3EFF Then vraddr And = &h1000
 			If vraddr >= &h3F20 AndAlso vraddr <= &h3fff Then vraddr And = &h3F1F
@@ -75,60 +74,43 @@ Function readPPUreg(ByVal addr As UShort)As ULongInt
 	Return value
 End Function
 
-Sub deriveAddresses(ByVal z As UByte)
-	Dim temp_P As UInteger
-	ppu.curAttrb = ppu.vram(ppu.attrbLine + (z \ 4))
-	ppu.curtile = ppu.vram(ppu.tableLine+z)
-	If Not (ppu.scanline\16) And 1 Then
-		If (z\2) And 1 Then
-			ppu.palette = (ppu.curAttrb Shr 2) And &h3
-		Else
-			ppu.palette = ppu.curAttrb And &h3
-		EndIf
-	Else
-		If(z\2) And 1 Then
-			ppu.palette=(ppu.curAttrb Shr 6) And &h3
-		Else
-			ppu.palette=(ppu.curAttrb Shr 4) And &h3
-		EndIf
-	End If
-	temp_p = PPUCTRL_B + (ppu.scanline AND 7)
-	ppu.lbit = ppu.vram(((temp_P + (ppu.curTile * 16))))
-	ppu.ubit = ppu.vram(((temp_p + (ppu.CurTile * 16)  + 8)))
+Sub deriveAddresses(ByVal z As UByte) 'This sub derives the addresses for the palette and the current background tile. The Z that is passed is the current background tile we are drawing for this scanline
+	Dim As UInteger basePatternAddress 'This is the base address in VRAM of the pattern(it's the vram index for ppu.lbit)
+	Dim As UInteger paletteOffset=4 'The amount that ppu.CurAttrb will be shifted right by
+	ppu.curAttrb = ppu.vram(ppu.attrbLine + (z \ 4)) 'Select the attribute from the attribute table
+	ppu.curTile = ppu.vram(ppu.tableLine+z) 'Select the tile from the pattern table
+	If Not (ppu.scanline\16) And 1 Then paletteOffset = 0 'If the scanline is mod 16 then we need a base offset of 0 instead of the usual 4
+	If (z\2) And 1 Then paletteOffset+ = 2 'And if z is mod 2 we need 
+	ppu.paletteIndex = (((ppu.curAttrb Shr (paletteOffset)) And &h3)*4)+&h3f01 'Compute the final palette index. This is magic, don't fuck with it
+	ppu.finalPalette = ppu.vram(&h3f00) + (ppu.vram(ppu.paletteIndex) Shl 8) + (ppu.vram(ppu.paletteIndex+1) Shl 16) + (ppu.vram(ppu.paletteIndex+2) Shl 24) 'More magic, don't fuck with
+	basePatternAddress = (((PPUCTRL_B + (ppu.scanline AND 7)) + (ppu.curTile * 16))) 'compute the base address of the pattern in the pattern table
+	ppu.lbit = ppu.vram(basePatternAddress) 
+	ppu.ubit = ppu.vram(basePatternAddress+8) 'The upper part of the pattern is just 8 bytes ahead of the lower part
 End Sub
 
-Sub renderBackground
-	Dim As Ubyte pixel
-	Dim As UInteger palette_address = &h3f01 + (ppu.palette * 4)
-	Dim as uinteger pPalette = ppu.vram(&h3f00) + (ppu.vram(palette_address) Shl 8) + (ppu.vram(palette_address+1) Shl 16) + (ppu.vram(palette_address+2) Shl 24)
-	For zz As Integer = 0 To 7
-		pixel =((ppu.lbit Shr 7) and &h1) + (((ppu.ubit Shr 7) and &h1) Shl 1)
-		ppuBuffer(ppu.curx,ppu.scanline) = masterpalette((pPalette Shr (pixel * 8) AND &hff))
-		ppu.curx+=1
-		ppu.lbit Shl = 1
-		ppu.ubit Shl = 1
-		If ppu.curx >= 256 Then
-			ppu.curx=0
-		EndIf
+Sub renderBackground(ByVal Z As UByte) 'Render the background into the PPU buffer. The Z that is passed is the current background tile we are drawing for this scanline
+	For zz As Integer = 0 To 7 'Each tile is 8 pixels so we have to render 8 of them
+		ppu.curx = (z*8)+zz 'compute the current Z position based on the current tile + how many pixels we've done for it
+		ppu.curPixel =((ppu.lbit Shr 7) and &h1) + (((ppu.ubit Shr 7) and &h1) Shl 1) 'Derive the palette index for the current pixel
+		ppuBuffer(ppu.curx,ppu.scanline) = masterpalette((ppu.finalPalette Shr (ppu.curPixel * 8) AND &hff)) 'Write the current pixel in to the PPU buffer
+		ppu.lbit Shl = 1'Shift the pattern so we get the next pixel next time around
+		ppu.ubit Shl = 1 'Same
 	Next
 End Sub
 
-Sub copySprites
-	PPUSTATUS = PPUSTATUS And 223
-	Dim As UByte sprCount = 0
-	Dim As UByte sprHeight = 7
-	If PPUCTRL_H Then sprHeight = 15
-	For spr As UInteger = 0 To &hff Step 4
-		If ((ppu.sprRAM(spr) + 1) <= ppu.scanline) And ((ppu.sprRAM(spr) + 1) + sprHeight >= ppu.scanline) Then
-			If sprCount = 8 Then
-				PPUSTATUS = PPUSTATUS Or 32
-				'msg = "SPR overflow on SL " & str(ppu.scanline)
-				Exit for
+Sub copySprites 'This sub copies the 8 sprites that will be visible on this scanline into the temporary sprite RAM
+   ppu.sprCount = 0 'Reset the sprite counter to 0
+	If PPUCTRL_H Then ppu.sprHeight = 15 Else ppu.sprHeight = 7 'Set the sprite height based on the PPU register for it
+	For spr As UInteger = 0 To 255 Step 4 'Run through the sprite ram to find what sprites will be on this scanline
+		If ((ppu.sprRAM(spr)) <= ppu.scanline-1) And ((ppu.sprRAM(spr)) + ppu.sprHeight >= ppu.scanline-1) Then 'check to see if the sprite is on this scanline
+			If ppu.sprCount = 8 Then 'A sprite overflow has occured
+				PPUSTATUS = PPUSTATUS Or 32 'Set the sprite overflow flag
+				Exit For 'And stop copying new sprites
 			EndIf
-			For sprcopy As UByte = 0 To 3
-				ppu.tempSPRram(sprCount,sprcopy) = ppu.sprRAM(spr+sprcopy)
+			For sprcopy As UByte = 0 To 3 'Copy the sprite to the temporary sprite RAM
+				ppu.tempSPRram(ppu.sprCount,sprcopy) = ppu.sprRAM(spr+sprcopy)
 			Next
-			sprCount+=1
+			ppu.sprCount+=1 'Increase the sprite count
 		EndIf
 	Next
 End Sub
@@ -140,7 +122,7 @@ Sub renderSprites
 	#Define flipY (ppu.tempSPRram(spr,2) And 128) / 128
 	#Define flipX (ppu.tempSPRram(spr,2) And 64) / 64
 	Dim As UInteger testPixel, pixcolor
-	Dim As Byte zstart, zstop, zstep, zoff, tile16=1
+	Dim As Byte zstart, zstop, zstep, tile16=1
 	Dim As UByte pixel, ubit, lbit, sprHeight = 7
 	Dim As UInteger sprTileNumber, sprAddress, paletteaddr, Ppalette
 	If PPUCTRL_H Then sprHeight = 15
@@ -176,12 +158,10 @@ Sub renderSprites
 			zstart = 7
 			zstop = 0
 			zstep = -1
-			zoff = -1
 		Else
 			zstart = 0
 			zstop = 7
 			zstep = 1
-			zoff = 0
 		EndIf
 		For zz As byte = zstart To zstop Step zstep
 			pixel =((lbit Shr 7) and &h1) + (((ubit Shr 7) and &h1) Shl 1)
@@ -242,7 +222,7 @@ Sub ppuLoop
 			ppu.attrbLine = PPUCTRL_NN + &h3C0 + ((ppu.scanline \ 32) * 8)
 			For z As UByte = 0 To 31
 				deriveAddresses(z) 'This sub derives the nametable and palette addresses for the background
-				If ppumask_b = 1 Then renderBackground 'This sub renders the background in to the framebuffer array
+				If ppumask_b = 1 Then renderBackground(z) 'This sub renders the background in to the framebuffer array
 				copySprites 'This sub copies the sprites for the current scanline from main sprite memory to temporary sprite memory
 				If ppumask_s = 1 Then renderSprites 'This sub renders the sprites in to the framebuffer array
 			next
@@ -254,7 +234,6 @@ Sub ppuLoop
 			If ppu.scanline = 241 Then ppustatus or=&h80 'set vblank flag
 			If ppu.scanline = 241 And PPUCTRL_V = 1 Then	nmi
 			ppu.curx=0
-			ppu.cury=0
 		Case Else 'shouldn't come here!
 			beep
 	End Select
