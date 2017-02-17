@@ -76,7 +76,7 @@ Declare Sub frameLimit
 Dim Shared As Any Ptr nesbuffer
 Dim Shared As UByte debug, mapper, spritehit = 0, trace_done = 0, flimit = 1, sf = 2, forcerender = 0, do_trace = 1
 Dim Shared As UInteger opstoskip, nextskip, opGoal, romsize, screenx, screeny, centerx, centery, totalops, ticksPerSecond, logops=0
-Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version
+Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version, lastrom
 Dim Shared As Single start, lastframetime,opsPerSecond, stepstart,fps, vstart, curtime
 Dim Shared As Any Ptr strawberry
 Dim Shared As ULongInt ticks, totalTicks
@@ -256,7 +256,7 @@ Sub status 'This sub prints the status of various things to the screen
 	Draw String framebuffer, (0,20), "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
 	Draw String framebuffer, (0,30), "Mapper: " & mapper
 	Draw String framebuffer, (0,40), "Total ops: " & totalops & " | Stepping by: " & opstoskip
-	Draw String framebuffer, (0,50), "Ops per second: " &  opsPerSecond & " | CPU Frequency: " &  Format(ticksPerSecond/1000000,"0.000") & "Mhz"
+	Draw String framebuffer, (0,50), "Ops per second: " &  Format(opsPerSecond, "0") & " | CPU Frequency: " &  Format(ticksPerSecond/1000000,"0.000") & "Mhz"
 	Draw String framebuffer, (0,60), "________________________"
 	Draw String framebuffer, (0,70), "A: " & IIf(cpu.acc < &h10,"0" & Hex(cpu.acc),Hex(cpu.acc)) & " X: " & IIf(cpu.x < &h10,"0" & Hex(cpu.x),Hex(cpu.x)) & " Y: " & IIf(cpu.y < &h10,"0" & Hex(cpu.y),Hex(cpu.y))
 	Draw String framebuffer, (0,80), "PC: " & cpu.PC & " ($" & Hex(cpu.pc) & ")"
@@ -395,6 +395,7 @@ Sub loadini 'load the ini. Duh.
 		Print #f, 1
 		Print #f, 1
 		Print #f, 0
+		Print #f, ""
 		Close #f
 	EndIf
 	Open ExePath & "\strawberry.ini" For Input As #f
@@ -404,6 +405,7 @@ Sub loadini 'load the ini. Duh.
 	Input #f, flimit
 	Input #f, sf
 	Input #f, do_trace
+	Input #f, lastrom
 	Close #f
 	centerx = screenx/2
 	centery = screeny/2
@@ -418,6 +420,7 @@ Sub writeini 'write out a new ini
 	Print #f, fLimit
 	Print #f, sf
 	Print #f, do_trace
+	Print #f, lastrom
 	Close #f
 End Sub
 Sub CAE

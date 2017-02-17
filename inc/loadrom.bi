@@ -38,8 +38,10 @@ Sub loadROM
 		GoTo gotname
 	End If
 	Print "Note: ROM must be in EXEPATH, else use drag and drop to load it!)"
+	Print "Press ENTER to load the last booted ROM!"
 	Input "Program to run (compiled, no header): ", progname 'Get a filename from user
-	progname = ExePath & "\" & progname
+	
+	If progname <> "" Then progname = ExePath & "\" & progname else progname = lastrom
 
 	gotname:
 	If progname = "" Or Not FileExists(progname) Then 'Break if no such filename
@@ -48,6 +50,8 @@ Sub loadROM
 		Sleep 3000
 		CAE
 	EndIf
+	lastrom = progname
+	writeini
 
 	'remove path from filename
 	For z As Integer = 1 To Len(progname) Step 1

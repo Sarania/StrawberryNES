@@ -10,7 +10,7 @@ Declare Function writePPUreg(ByVal addr As uShort, ByVal value As UByte) As ULon
 Function writePPUreg(ByVal addr As UShort, ByVal value As UByte) As ULongInt
 	Select Case(addr)
 		Case &h2000
-			PPUCTRL = value
+		PPUCTRL = value
 		Case &h2001
 			PPUMASK = value
 		Case &h2003
@@ -107,8 +107,7 @@ Sub renderBackground
 		ppu.curx+=1
 		ppu.lbit Shl = 1
 		ppu.ubit Shl = 1
-		If ppu.curx = 256 Then
-			ppu.cury+=1
+		If ppu.curx >= 256 Then
 			ppu.curx=0
 		EndIf
 	Next
@@ -232,6 +231,7 @@ Sub ppuRender
 	Put framebuffer,(0,0),nesbuffer, trans
 End Sub
 Sub ppuLoop
+	ppu.curx = 0
 	Select Case ppu.scanline
 		Case -1 'prerender scanline
 			PPUSTATUS And= &h7F 'clear vblank flag
