@@ -99,9 +99,6 @@ End Sub
 
 Sub renderBackground
 	Dim As Ubyte pixel
-	Dim As UInteger xoff, yoff
-	xoff = screenx-512
-	yoff = screeny-480
 	Dim As UInteger palette_address = &h3f01 + (ppu.palette * 4)
 	Dim as uinteger pPalette = ppu.vram(&h3f00) + (ppu.vram(palette_address) Shl 8) + (ppu.vram(palette_address+1) Shl 16) + (ppu.vram(palette_address+2) Shl 24)
 	For zz As Integer = 0 To 7
@@ -126,7 +123,7 @@ Sub copySprites
 		If ((ppu.sprRAM(spr) + 1) <= ppu.scanline) And ((ppu.sprRAM(spr) + 1) + sprHeight >= ppu.scanline) Then
 			If sprCount = 8 Then
 				PPUSTATUS = PPUSTATUS Or 32
-				msg = "SPR overflow on SL " & str(ppu.scanline)
+				'msg = "SPR overflow on SL " & str(ppu.scanline)
 				Exit for
 			EndIf
 			For sprcopy As UByte = 0 To 3
@@ -193,7 +190,7 @@ Sub renderSprites
 			ubit Shl = 1
 			pixcolor = masterpalette((pPalette Shr (pixel * 8) AND &hff))
 			'If tile16 = 1 Then pixcolor = RGB(pixel*85,0,0)
-			''If tile16 = 2 Then pixcolor = RGB(0,0,pixel*85)
+			'If tile16 = 2 Then pixcolor = RGB(0,0,pixel*85)
 			testPixel = ppuBuffer((ppu.tempSPRram(spr,3)+zz),ppu.scanline)
 			If pixel <> 0 Then
 				If sprPriority = 0 Then

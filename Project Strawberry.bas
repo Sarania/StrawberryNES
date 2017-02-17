@@ -430,7 +430,8 @@ sub frameLimit
 	fps = vblanks/(Timer - vStart)
 	'Limit FPS
 	If flimit = 1 Then
-		While fps > 60
+		While fps > 60 And ticksPerSecond > 1789000
+			ticksPerSecond = TotalTicks/(Timer - start)
 			fps = vblanks/(Timer - vStart)
 		Wend
 	End if
@@ -691,11 +692,11 @@ Do
 	totalops+=1
 	decode_and_execute(cpu.memory(cpu.pc-1)) ' decode the binary located at the PC to opcode and address mode and then execute the instruction
 	clear_b '==========================================================HACKS==========================================================================================
-	If ticks >=112 And emulatorMode <> "6502" Then
+	If ticks >=111 And emulatorMode <> "6502" Then
 		ppuLoop
 		frameLimit
 		totalTicks+=ticks
-		ticks = 0
+		ticks = ticks - 111
 	EndIf
 	#Ifdef debugmode
 	If debug = 1 And nextskip = 0 Then
