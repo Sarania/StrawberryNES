@@ -433,7 +433,7 @@ sub frameLimit
 	fps = vblanks/(Timer - vStart)
 	'Limit FPS
 	If flimit = 1 Then
-		While fps > 60 And ticksPerSecond > 1789000
+		While fps > 60 or ticksPerSecond > 1789000
 			ticksPerSecond = TotalTicks/(Timer - start)
 			fps = vblanks/(Timer - vStart)
 		Wend
