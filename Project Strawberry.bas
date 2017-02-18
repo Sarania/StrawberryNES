@@ -74,7 +74,7 @@ Declare Sub push_framebuffer
 Declare Sub clear_framebuffer
 Declare Sub frameLimit
 Dim Shared As Any Ptr nesbuffer
-Dim Shared As UByte debug, mapper, spritehit = 0, trace_done = 0, flimit = 1, sf = 2, forcerender = 0, do_trace = 1
+Dim Shared As UByte debug, mapper, spritehit = 0, trace_done = 0, flimit = 1, sf = 2, forcerender = 0, do_trace = 1, backIsTransparent = 1
 Dim Shared As UInteger opstoskip, nextskip, opGoal, romsize, screenx, screeny, centerx, centery, totalops, ticksPerSecond, logops=0
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version, lastrom
 Dim Shared As Single start, lastframetime,opsPerSecond, stepstart,fps, vstart, curtime
@@ -150,13 +150,14 @@ Type ppus
 	'----------------------------'
 	'   2C02 Registers/MEM etc   '
 	'----------------------------'
-	sprRAM (0 To &hFF) As UByte
-	tempSPRram (0 To 7, 0 To 3) As ubyte
+	sprRAM (0 To &hFF) As UInteger
+	tempSPRram (0 To 7, 0 To 3) As uinteger
 	vram(0 To &hFFFF) As ubyte
 	scanline As UInteger = 241
 	sprAddr As UShort
 	vrAddr As Uinteger
 	addrLatch As UByte
+	basePatternAddress As UInteger
 	curTile As UInteger
 	tableLine As UInteger
 	attrbLine As UInteger
@@ -166,6 +167,8 @@ Type ppus
 	curPixel As UByte
 	sprCount As UByte
 	sprHeight As UByte
+	sprAddress As UInteger
+	sprTileNumber As Uinteger
 	ubit As UByte
 	lbit As Ubyte
 	curx As UInteger
@@ -229,6 +232,11 @@ Dim Shared header As headers 'iNES header
 #Define  PPUSTATUS_V     ( PPUSTATUS And 128 ) / 128
 #Define  PPUSTATUS_S     ( PPUSTATUS And 64 ) / 64
 #Define  PPUSTATUS_O     ( PPUSTATUS And 32 ) / 32
+#Define spr16Address (ppu.tempSPRram(spr,1) And 1) * &h1000
+#Define sprPriority (ppu.tempSPRram(spr,2) And 32) / 32
+#Define sprPalAddress (ppu.tempSPRram(spr,2) And 3)
+#Define flipY (ppu.tempSPRram(spr,2) And 128) / 128
+#Define flipX (ppu.tempSPRram(spr,2) And 64) / 64
 '==================================================================================================================================================================
 #Include Once "inc/loadrom.bi"
 loadini
