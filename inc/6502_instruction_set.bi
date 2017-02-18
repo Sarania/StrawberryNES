@@ -515,15 +515,22 @@ Sub INS_RTS
 End Sub
 
 Sub INS_SBC
-	'subtract with carry
-	Dim As Integer sbctmp
-	get_data
-	sbctmp = cpu.acc - *tdata - (1 - flag_c)
-	If sbctmp = 0 Then set_z Else clear_z
-	If Bit(sbctmp,7) Then set_s Else clear_s
-	If sbctmp >= 0 Then set_c Else clear_c
-	If ((cpu.acc Xor sbctmp) And &H80) And ((cpu.acc Xor *tdata) And &H80) Then set_v Else clear_v
-	cpu.acc = sbctmp And &Hff
+ 'subtract with carry
+    Dim As uInteger sbctmp
+    get_data
+    Dim As UByte sbcdata = CUByte(*tdata)
+    sbcdata Xor= &hff
+    sbctmp = (cpu.acc + cubyte(sbcdata) + flag_c)
+    clear_v
+    If ((cpu.acc Xor sbcdata) And &h80) <> &h80 Then
+        If ((cpu.acc Xor sbctmp) And &h80) = &h80 Then
+            set_v
+        End if
+    End If
+    If (sbctmp And &hff) = 0 Then set_z Else clear_z
+    If Bit(sbctmp,7) Then set_s Else clear_s
+    If sbctmp > &hff Then set_c Else clear_c
+    cpu.acc = sbctmp And &hFF 
 End Sub
 
 Sub INS_SEC

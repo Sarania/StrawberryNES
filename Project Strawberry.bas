@@ -742,7 +742,10 @@ Do
 	#EndIf
 	'==================================================================================================================================================================
 	'====================================REMOVE THIS======================================================
-	If emulatormode = "6502" Then cpu.memory(&hfe) = Rnd*255 ' random number generator for simple 6502 programs
+	If emulatormode = "6502" Then 
+		cpu.memory(&hfe) = Rnd*255 ' random number generator for simple 6502 programs
+		keycheck
+	EndIf
 	'====================================REMOVE THIS======================================================
 	cpu.pc+=1
 	totalops+=1
