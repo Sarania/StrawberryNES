@@ -221,8 +221,10 @@ Sub ppuLoop
 			For z As UByte = 0 To 31
 				deriveAddresses(z) 'This sub derives the nametable and palette addresses for the background
 				If ppumask_b = 1 Then renderBackground(z) 'This sub renders the background in to the framebuffer array
+				If z = 31 Then
 				copySprites 'This sub copies the sprites for the current scanline from main sprite memory to temporary sprite memory
-				If ppumask_s = 1 Then renderSprites 'This sub renders the sprites in to the framebuffer array
+				If ppumask_s = 1 Then renderSprites 'This sub renders the sprites in to the framebuffer arra
+				End if
 			next
 		Case 240 'post render scanline
 			ppuRender 'This sub renders the framebuffer array in to the main framebuffer while scaling according to the scalefactor

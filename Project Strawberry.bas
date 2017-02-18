@@ -356,7 +356,7 @@ Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As USho
 	If addr >= &h800 and addr < &h2000 then addr And= &h800
 	Select Case addr
 		Case &h2000 To &h3FFF
-			readmem = readPPUreg(addr)
+			readmem = readPPUreg(addr and &h2007)
 		Case &h4015
 			'apu stuff
 		Case &h4016
@@ -380,7 +380,7 @@ Sub writemem(ByVal addr As ULongInt, ByVal value As UByte) 'write memory
 		if addr >= &h800 and addr < &h2000 then addr And= &h800
 		Select Case addr
 			Case &h2000 To &h3FFF
-				writePPUreg(addr, value)
+				writePPUreg(addr and &h2007, value)
 			Case &h4014
 				writePPUreg(&H4014,value)
 			Case &h4000 To &h4015, &h4017
@@ -479,6 +479,7 @@ Sub options
 		EndIf
 		Put(0,0),framebuffer,PSet
 		clear_framebuffer
+		ppuRender
 		Line framebuffer, (centerx - halfx, centery-halfY)-(centerx + halfx, centery+halfy), RGB(0,50,150), BF
 		Line framebuffer, (centerx - halfx, centery-halfY)-(centerx + halfx, centery-(halfy-10)), RGB(0,30,80), BF
 		Line framebuffer, (centerx - halfx, centery-(halfy-10))-(centerx + halfx, centery-(halfy-10)), RGB(255,255,255)
@@ -695,18 +696,17 @@ Do
 	curtime = (Timer-start)
 	opsPerSecond = totalops/curtime
 	ticksPerSecond = TotalTicks/curtime
-
 	#EndIf
 	'==================================================================================================================================================================
 	'====================================REMOVE THIS======================================================
 	If emulatormode = "6502" Then cpu.memory(&hfe) = Rnd*255 ' random number generator for simple 6502 programs
 	'====================================REMOVE THIS======================================================
-	keycheck
 	cpu.pc+=1
 	totalops+=1
 	decode_and_execute(cpu.memory(cpu.pc-1)) ' decode the binary located at the PC to opcode and address mode and then execute the instruction
 	clear_b '==========================================================HACKS==========================================================================================
 	If ticks >=111 And emulatorMode <> "6502" Then
+	   keycheck
 		ppuLoop
 		frameLimit
 		totalTicks+=ticks
