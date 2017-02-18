@@ -74,7 +74,7 @@ Declare Sub push_framebuffer
 Declare Sub clear_framebuffer
 Declare Sub frameLimit
 Dim Shared As Any Ptr nesbuffer
-Dim Shared As UByte debug, mapper, spritehit = 0, trace_done = 0, flimit = 1, sf = 2, forcerender = 0, do_trace = 1, backIsTransparent = 1
+Dim Shared As UByte debug, mapper, spritehit = 0, trace_done = 0, flimit = 1, sf = 2, forcerender = 0, do_trace = 1, backIsTransparent = 1, fullscreen = 0, fitwindow = 0
 Dim Shared As UInteger opstoskip, nextskip, opGoal, romsize, screenx, screeny, centerx, centery, totalops, ticksPerSecond, logops=0
 Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version, lastrom
 Dim Shared As Single start, lastframetime,opsPerSecond, stepstart,fps, vstart, curtime
@@ -250,7 +250,7 @@ ChDir("..")
 #Include Once "inc/decoder.bi" ' decodes hex opcodes to asm
 emulatorMode = "6502"
 lastframetime = Timer
-version = "0.70 alpha"
+version = "0.80 alpha"
 debug = 1
 opstoskip = 1
 nextskip = 1
@@ -303,7 +303,10 @@ Sub clear_framebuffer 'Just clears the main framebuffer
 End Sub
 
 Sub push_framebuffer 'Outputs the main framebuffer to the screen
-	status
+	If fitwindow = 0 Then status
+	If fitwindow = 1 Then
+		Draw String framebuffer, (screenx - 80,screeny - 10), Format(fps,"0.00") & " fps"
+	EndIf
 	Put(0,0),framebuffer,PSet
 	clear_framebuffer
 End Sub
@@ -406,6 +409,7 @@ Sub loadini 'load the ini. Duh.
 		Print #f, 1
 		Print #f, 1
 		Print #f, 0
+		Print #f, 0
 		Print #f, ""
 		Close #f
 	EndIf
@@ -417,6 +421,7 @@ Sub loadini 'load the ini. Duh.
 	Input #f, sf
 	Input #f, do_trace
 	Input #f, lastrom
+	Input #f, fitwindow
 	Close #f
 	centerx = screenx/2
 	centery = screeny/2
@@ -432,6 +437,7 @@ Sub writeini 'write out a new ini
 	Print #f, sf
 	Print #f, do_trace
 	Print #f, lastrom
+	Print #f, fitwindow
 	Close #f
 End Sub
 Sub CAE
@@ -444,9 +450,9 @@ sub frameLimit
 	fps = vblanks/(Timer - vStart)
 	'Limit FPS
 	If flimit = 1 Then
-		While  ticksPerSecond > 1789000
+		While  ticksPerSecond > 1789000 OrElse fps > 60
 			ticksPerSecond = TotalTicks/(Timer - start)
-			'fps = vblanks/(Timer - vStart)
+			fps = vblanks/(Timer - vStart)
 		Wend
 	End if
 	'This gives the FPS timer a "resolution" so to speak.
@@ -466,10 +472,11 @@ Sub options
 	Dim As UInteger halfX = optXsize / 2, halfY = optYsize/2
 	Dim As uinteger tempcolor = RGB(255,255,255)
 	Dim As Integer oldwheel
-	Dim As UByte resindex, firstloop = 1
+	Dim As Byte resindex =-1, firstloop = 1, oldfitwindow = fitwindow, oldsf = sf
 	For qq As Integer = 0 To 9
 		If screenx = res(qq,1) Then resindex = qq
 	Next
+	If resindex = -1 Then resindex = 1
 	Do
 		oldwheel = mousewheel
 		GetMouse(mousex,mousey,mousewheel,mousebuttons)
@@ -504,8 +511,8 @@ Sub options
 				tempcolor = RGB(150,0,255)
 				If mousewheel <> oldwheel Then
 					sf+= (mousewheel-oldwheel)
-					If 256*sf > screenx Or 240*sf > screeny Then sf -=1
-					If SF = 0 Then SF = 1
+					if sf > 6 then sf = 1
+					If SF = 0 Then SF = 6
 					For q As UInteger = 0 To screeny
 						Line nesbuffer, (0,q)-(screenx,q), 0'Blank the nes buffer since the scaling size has changed
 					Next
@@ -540,7 +547,7 @@ Sub options
 		EndIf
 		Draw String framebuffer, (centerx-halfx,(centery-halfy)+60), "Window size: " & res(resindex,1) & "x" & res(resindex,2), tempcolor
 		tempcolor = RGB(255,255,255)
-		
+
 		If mousex > (centerx - halfx) And mousex < ((centerx-halfx)+248) Then
 			If mousey > (centery - halfy +(66)) And mousey < (centery - halfy +(82)) Then
 				tempcolor = RGB(150,0,255)
@@ -555,7 +562,31 @@ Sub options
 		Draw String framebuffer, (centerx-halfx,(centery-halfy)+75), "Enable opcode trace(slow!): " & IIf(do_trace = 1, "Yes", "No"), tempcolor
 		tempcolor = RGB(255,255,255)
 
-		status
+
+		If mousex > (centerx - halfx) And mousex < ((centerx-halfx)+453) Then
+			If mousey > (centery - halfy +(83)) And mousey < (centery - halfy +(97)) Then
+				tempcolor = RGB(150,0,255)
+				If mousewheel <> oldwheel Then
+					fitwindow+= (mousewheel-oldwheel)
+					If fitwindow = 2 Then fitwindow = 0
+					If fitwindow > 2 Then fitwindow = 1
+					totalops = opgoal * (Timer-start) 'force totalops to be "where it should" since we are changing the goal
+				EndIf
+			EndIf
+		EndIf
+		Draw String framebuffer, (centerx-halfx,(centery-halfy)+90), "Fit scaled NES image to window(no debug info at all): " & IIf(fitwindow = 1, "Yes", "No"), tempcolor
+		tempcolor = RGB(255,255,255)
+
+
+
+
+
+
+
+
+
+
+		If fitwindow = 0 Then status
 		If mousex < screenx And mousey < screeny Then
 			While mousebuttons <> 0
 				GetMouse(mousex,mousey,,mousebuttons)
@@ -564,13 +595,25 @@ Sub options
 		End If
 		Draw String framebuffer, (centerx-halfx,centery+halfy-25), "Use mousewheel to change highlighted values!", RGB(255,255,255)
 		Draw String framebuffer, (centerx-halfx,centery+halfy-10), "Press O to return to emulation!", RGB(255,255,255)
+
+
+
+
 	Loop While Not MultiKey(SC_O) And Not MultiKey(SC_ESCAPE)
 	If MultiKey(SC_ESCAPE) Then CAE
-	If res(resindex,1) <> screenx Then
-		screenx = res(resindex,1)
-		screeny = res(resindex,2)
+	If (res(resindex,1) <> screenx) OrElse (oldfitwindow <> fitwindow) OrElse (oldsf <> sf) Then
+		If fitwindow = 1 Then
+			screenx = 256*sf
+			screeny = 240*sf
+		Else
+			screenx = res(resindex,1)
+			screeny = res(resindex,2)
+		EndIf
 		centerx = screenx/2
 		centery = screeny/2
+	While (256*sf > screenx) OrElse (240*sf > screeny)
+		sf-=1
+	Wend
 		ImageDestroy(framebuffer)
 		ImageDestroy(nesbuffer)
 		framebuffer = ImageCreate(screenx,screeny,RGB(0,0,0))
@@ -585,7 +628,7 @@ Sub options
 		Next
 		forcerender = 1 'force next frame to render ALL pixels since we blanked the framebuffer
 	End If
-	
+
 	If do_trace = 0 Then
 		For qq As Uinteger = 0 To 255
 			ophistory(qq) = ""
@@ -706,7 +749,7 @@ Do
 	decode_and_execute(cpu.memory(cpu.pc-1)) ' decode the binary located at the PC to opcode and address mode and then execute the instruction
 	clear_b '==========================================================HACKS==========================================================================================
 	If ticks >=111 And emulatorMode <> "6502" Then
-	   keycheck
+		keycheck
 		ppuLoop
 		frameLimit
 		totalTicks+=ticks

@@ -129,28 +129,28 @@ Sub get_data
 	                             NOTICE
 	==========================================================================='/
 	Dim As String addrstr
-	Select Case taddr
-		Case 8192
-			addrstr = "PPUCTRL(0x2000)"
-		Case 8193
-			addrstr = "PPUMASK(0x2001)"
-		Case 8194
-			addrstr = "PPUSTATUS(0x2002)"
-		Case 8195
-			addrstr = "OAMADDR(0x2003)"
-		Case 8196
-			addrstr = "OAMDATA(0x2004)"
-		Case 8197
-			addrstr = "PPUSCROLL(0x2005)"
-		Case 8198
-			addrstr = "PPUADDR(0x2006)"
-		Case 8199
-			addrstr = "PPUDATA(0x2007)"
-		Case 16404
-			addrstr = "OAMDMA(0x4014)"
-		Case Else
-			addrstr = "0x" & Hex(taddr)
-	End Select
+	'Select Case taddr
+	'	Case 8192
+	'		addrstr = "PPUCTRL(0x2000)"
+	'	Case 8193
+	'		addrstr = "PPUMASK(0x2001)"
+	'	Case 8194
+	'		addrstr = "PPUSTATUS(0x2002)"
+	'	Case 8195
+	'		addrstr = "OAMADDR(0x2003)"
+	'	Case 8196
+	'		addrstr = "OAMDATA(0x2004)"
+	'	Case 8197
+	'		addrstr = "PPUSCROLL(0x2005)"
+	'	Case 8198
+	'		addrstr = "PPUADDR(0x2006)"
+	'	Case 8199
+	'		addrstr = "PPUDATA(0x2007)"
+	'	Case 16404
+	'		addrstr = "OAMDMA(0x4014)"
+	'	Case Else
+	'		addrstr = "0x" & Hex(taddr)
+	'End Select
 	#ifdef debugmode
 	'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
 	If do_trace = 1 Then
