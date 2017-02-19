@@ -35,6 +35,15 @@ Function writePPUreg(ByVal addr As UShort, ByVal value As UByte) As ULongInt
 			If vraddr >= &h3000 AndAlso vraddr <= &h3EFF Then vraddr And = &h1000
 			If vraddr >= &h3F20 AndAlso vraddr <= &h3fff Then vraddr And = &h3F1F
 			'If vraddr >= &h2800 AndAlso vraddr < &h3000 Then vraddr- = &h800
+			If header.flags6 And 1 Then 
+			If vraddr >= &h2800 AndAlso vraddr < &h3000 Then vraddr- = &h800
+			Else
+         If vraddr >= &h2400 AndAlso vraddr < &h2800 OrElse vraddr >= &h2c00 AndAlso vraddr < &h3000 Then
+         	vraddr = vraddr And (Not &h400)
+         EndIf
+         
+         
+			EndIf
 			ppu.vram(vrAddr) = value
 			If PPUCTRL_I = 1 Then
 				ppu.vrAddr += 32
@@ -68,7 +77,9 @@ Function readPPUreg(ByVal addr As UShort)As ULongInt
 			If vraddr >= &h3F20 AndAlso vraddr <= &h3fff Then vraddr And = &h3F1F
 			If vraddr >= &h2800 AndAlso vraddr < &h3000 Then vraddr- = &h800
 			value = ppu.vram(vrAddr)
-		Case else
+		Case Else
+		beep
+			
 	End Select
 	Return value
 End Function
@@ -165,7 +176,7 @@ Sub renderSprites
 				If spritehit = 0 Then 'spr0 only hits once per scanline
 					If (ppu.tempSPRram(spr,3)+zz > 7) AndAlso (ppu.tempSPRram(spr,3)+zz <> 255) Then 'spr0 doesn't hit on 0-7 and 255
 						If (ppumask_b = 1) AndAlso (ppumask_s = 1) Then 'spr0 doesn't hit if EITHER the background or sprite rendering is disabled
-							If (testpixel <> 0 And ppu.curpixel <> 0) Then 'spr0 only hits when BOTH the background and the sprite are not transparent
+							If (ppu.curpixel <> 0) Then 'spr0 only hits when BOTH the background and the sprite are not transparent
 								If backisTransparent = 0 Then
 								spritehit = 1 'This keeps track of whether we had a spr0 this frame yet
 								ppustatus Or= &h40 'Set the PPU flag

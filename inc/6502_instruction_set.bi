@@ -124,7 +124,10 @@ Sub get_data
 			cpu.pc+=1
 	End Select
 	If taddr = &h4016 Then cpu.memory(&h4016) = padRead
-	If taddr >= &h2000 And taddr <= &h3FFF Then cpu.memory(taddr) = readmem(taddr)
+	If taddr >= &h2000 And taddr <= &h3fff then
+	Dim As UShort regaddr = taddr And &h2007
+	If regaddr = &h2002 OrElse regaddr = &h2004 OrElse regaddr = &h2007 Then cpu.memory(taddr) = readmem(taddr)
+	End if
 	/'=========================================================================
 	                             NOTICE
 	==========================================================================='/
@@ -518,9 +521,9 @@ Sub INS_SBC
  'subtract with carry
     Dim As uInteger sbctmp
     get_data
-    Dim As UByte sbcdata = CUByte(*tdata)
+    Dim As UByte sbcdata = *tdata
     sbcdata Xor= &hff
-    sbctmp = (cpu.acc + cubyte(sbcdata) + flag_c)
+    sbctmp = (cpu.acc + sbcdata + flag_c)
     clear_v
     If ((cpu.acc Xor sbcdata) And &h80) <> &h80 Then
         If ((cpu.acc Xor sbctmp) And &h80) = &h80 Then
