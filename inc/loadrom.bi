@@ -31,7 +31,7 @@ Sub loadMapper2
 	Next
 End Sub
 Sub loadROM
-	Dim As String progname, shpname, onechr
+	Dim As String progname, onechr
 	'See if we got a filename from the command line or drag and drop
 	If Command(1) <> "" Then
 		progname = Command(1)
@@ -85,6 +85,8 @@ Sub loadROM
 	Get #1, 11, header.flags10
 	Get #1, 12, header.zeros()
    skipread:
+   If header.flags6 And 1 = 1 Then mirroring = "V" Else mirroring = "H"
+   If header.flags9 And 1 = 1 Then TVsystem = "PAL" Else TVsystem = "NTSC"
 	If Chr(header.signature(0)) = "N" And Chr(header.signature(1)) = "E" And Chr(header.signature(2)) = "S" Then
 		ReDim As UByte PrgROM(header.prgSize*16*1024)
 		ReDim As UByte chrROM(header.chrSize*8*1024)

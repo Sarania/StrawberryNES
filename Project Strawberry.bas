@@ -57,6 +57,7 @@ Declare Sub CAE 'Cleanup and exit
 Declare Sub loadini 'Load the ini file
 Declare Sub writeini
 Declare Sub options
+Declare Sub romInfo
 Declare Sub nmi
 #ifdef debugmode
 '======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
@@ -76,7 +77,7 @@ Declare Sub frameLimit
 Dim Shared As Any Ptr nesbuffer
 Dim Shared As UByte debug, mapper, spritehit = 0, trace_done = 0, flimit = 1, sf = 2, forcerender = 0, do_trace = 1, backIsTransparent = 1, fullscreen = 0, fitwindow = 0
 Dim Shared As UInteger opstoskip, nextskip, opGoal, romsize, screenx, screeny, centerx, centery, totalops, ticksPerSecond, logops=0
-Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version, lastrom
+Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version, lastrom, shpname, mirroring, TVsystem
 Dim Shared As Single start, lastframetime,opsPerSecond, stepstart,fps, vstart, curtime
 Dim Shared As Any Ptr strawberry
 Dim Shared As ULongInt ticks, totalTicks
@@ -637,6 +638,45 @@ Sub options
 	writeini
 End Sub
 
+Sub romInfo
+	While MultiKey(SC_F11):Sleep 1,1:wend
+	Dim As UInteger optXsize=300, optYsize=60
+	Dim As UInteger halfX = optXsize / 2, halfY = optYsize/2
+	Dim As uinteger tempcolor = RGB(255,255,255)
+	Dim As Integer oldwheel
+	Dim As Byte resindex =-1, firstloop = 1, oldfitwindow = fitwindow, oldsf = sf
+	dim as string mappertext(0 to 10) = {"0 - NROM", "1 - MMC1", "2 - UNROM", "3 - CNROM", "4 - MMC3", "5 - MMC5", "6 - Mapper 6", "7 - AOROM", "8 - Mapper 8", "9 - MMC2"}
+	
+	For qq As Integer = 0 To 9
+		If screenx = res(qq,1) Then resindex = qq
+	Next
+	If resindex = -1 Then resindex = 1
+	Do
+		oldwheel = mousewheel
+		GetMouse(mousex,mousey,mousewheel,mousebuttons)
+		If firstloop = 1 Then
+			oldwheel = mousewheel
+			firstloop = 0
+		EndIf
+		Put(0,0),framebuffer,PSet
+		clear_framebuffer
+		ppuRender
+		Line framebuffer, (centerx - halfx, centery-halfY)-(centerx + halfx, centery+halfy), RGB(0,50,150), BF
+		Line framebuffer, (centerx - halfx, centery-halfY)-(centerx + halfx, centery-(halfy-10)), RGB(0,30,80), BF
+		Line framebuffer, (centerx - halfx, centery-(halfy-10))-(centerx + halfx, centery-(halfy-10)), RGB(255,255,255)
+		Line framebuffer, (centerx - halfx, centery-halfY)-(centerx + halfx, centery+halfy), RGB(255,255,255),B
+		draw String framebuffer, (centerx-32,centery-(halfy-1)), "Rom Info"
+		Draw String framebuffer, (centerx-halfx,centery-(halfy-12)), "File name: " & shpname
+		Draw String framebuffer, (centerx-halfx,centery-(halfy-22)), "Region: " & TVsystem
+		Draw String framebuffer, (centerx-halfx,centery-(halfy-32)), "PRG Size: " & header.prgSize*16 & "KB | CHR Size: " & header.chrSize*8 & "KB"
+		Draw String framebuffer, (centerx-halfx,centery-(halfy-42)), "Mapper: " & mappertext(mapper)
+		Draw String framebuffer, (centerx-halfx,centery-(halfy-52)), "Mirroring: " & mirroring
+		
+		 
+	Loop While Not MultiKey(SC_ESCAPE) AndAlso Not MultiKey(SC_f11)
+	While MultiKey(SC_F11):Sleep 1,1: wend
+	
+End Sub
 '======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
 #Ifdef debugmode
 Sub comparelog
