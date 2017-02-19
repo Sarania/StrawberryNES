@@ -35,14 +35,12 @@ Function writePPUreg(ByVal addr As UShort, ByVal value As UByte) As ULongInt
 			If vraddr >= &h3000 AndAlso vraddr <= &h3EFF Then vraddr And = &h1000
 			If vraddr >= &h3F20 AndAlso vraddr <= &h3fff Then vraddr And = &h3F1F
 			'If vraddr >= &h2800 AndAlso vraddr < &h3000 Then vraddr- = &h800
-			If header.flags6 And 1 Then 
-			If vraddr >= &h2800 AndAlso vraddr < &h3000 Then vraddr- = &h800
-			Else
-         If vraddr >= &h2400 AndAlso vraddr < &h2800 OrElse vraddr >= &h2c00 AndAlso vraddr < &h3000 Then
-         	vraddr = vraddr And (Not &h400)
-         EndIf
-         
-         
+			If mirroring = "H" Then
+				If vraddr >= &h2400 Andalso vraddr < &h27FF Then vraddr -=&h400
+				If vraddr >= &h2c00 Andalso vraddr < &h2FFF Then vraddr -=&h400
+			ElseIf mirroring = "V" Then
+				If vraddr >= &h2800 Andalso vraddr < &h2BFF Then vraddr -=&h800
+				If vraddr >= &h2c00 Andalso vraddr < &h2FFF Then vraddr -=&h800			
 			EndIf
 			ppu.vram(vrAddr) = value
 			If PPUCTRL_I = 1 Then
@@ -67,6 +65,7 @@ Function readPPUreg(ByVal addr As UShort)As ULongInt
 			'ppu.addrLatch = 0
 			'clear latch and scroll latch
 		Case &h2004
+			beep
 			value = ppu.sprRAM(ppu.sprADDR)
 			If Not (ppustatus And &h80) Then  ppu.sprADDR+=1
 		Case &h2007 'This section isn't working right!
@@ -76,6 +75,13 @@ Function readPPUreg(ByVal addr As UShort)As ULongInt
 			If vraddr >= &h3000 AndAlso vraddr <= &h3EFF Then vraddr And = &h1000
 			If vraddr >= &h3F20 AndAlso vraddr <= &h3fff Then vraddr And = &h3F1F
 			If vraddr >= &h2800 AndAlso vraddr < &h3000 Then vraddr- = &h800
+				If mirroring = "H" Then
+				If vraddr >= &h2400 Andalso vraddr < &h27FF Then vraddr -=&h400
+				If vraddr >= &h2c00 Andalso vraddr < &h2FFF Then vraddr -=&h400
+				ElseIf mirroring = "V" Then
+				If vraddr >= &h2800 Andalso vraddr < &h2BFF Then vraddr -=&h800
+				If vraddr >= &h2c00 Andalso vraddr < &h2FFF Then vraddr -=&h800			
+			EndIf
 			value = ppu.vram(vrAddr)
 		Case Else
 		beep
@@ -98,12 +104,13 @@ Sub deriveAddresses(ByVal z As UByte) 'This sub derives the addresses for the pa
 End Sub
 
 Sub renderBackground(ByVal Z As UByte) 'Render the background into the PPU buffer. The Z that is passed is the current background tile we are drawing for this scanline
+	Dim As UInteger curx
 	For zz As Integer = 0 To 7 'Each tile is 8 pixels so we have to render 8 of them
-		ppu.curx = (z*8)+zz 'compute the current Z position based on the current tile + how many pixels we've done for it
+		curx = (z*8)+zz 'compute the current Z position based on the current tile + how many pixels we've done for it
 		ppu.curPixel =((ppu.lbit Shr 7) and &h1) + (((ppu.ubit Shr 7) and &h1) Shl 1) 'Derive the palette index for the current pixel
-		ppuBuffer(ppu.curx,ppu.scanline) = (ppu.finalPalette Shr (ppu.curPixel * 8) AND &hff) 'Write the current pixel in to the PPU buffer
+		ppuBuffer(curx,ppu.scanline) = (ppu.finalPalette Shr (ppu.curPixel * 8) AND &hff) 'Write the current pixel in to the PPU buffer
 		If ppu.curpixel <> 0 Then backIsTransparent = 0
-	   backBuffer(ppu.curx,ppu.scanline) = ppu.curPixel
+	   backBuffer(curx,ppu.scanline) = ppu.curPixel
 		ppu.lbit Shl = 1'Shift the pattern so we get the next pixel next time around
 		ppu.ubit Shl = 1 'Same
 	Next
@@ -121,7 +128,6 @@ Sub copySprites 'This sub copies the 8 sprites that will be visible on this scan
 			For sprcopy As UByte = 0 To 3 'Copy the sprite to the temporary sprite RAM
 				ppu.tempSPRram(ppu.sprCount,sprcopy) = ppu.sprRAM(spr+sprcopy)
 			Next
-		'	Line framebuffer, (ppu.sprRAM(spr+3),ppu.sprRAM(spr))-(ppu.sprRAM(spr+3)+20,ppu.SPRRAM(spr)+20),RGB(255,255,255), B
 			ppu.sprCount+=1 'Increase the sprite count
 		EndIf
 	Next
@@ -219,7 +225,6 @@ Sub ppuRender
 	Put framebuffer,(0,0),nesbuffer, trans
 End Sub
 Sub ppuLoop
-	ppu.curx = 0
 	Select Case ppu.scanline
 		Case -1 'prerender scanline
 			backIsTransparent = 1
@@ -244,7 +249,6 @@ Sub ppuLoop
 		Case 241 To 262
 			If ppu.scanline = 241 Then ppustatus or=&h80 'set vblank flag
 			If ppu.scanline = 241 And PPUCTRL_V = 1 Then	nmi
-			ppu.curx=0
 		Case Else 'shouldn't come here!
 			beep
 	End Select

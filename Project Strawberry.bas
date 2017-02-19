@@ -172,7 +172,6 @@ Type ppus
 	sprTileNumber As Uinteger
 	ubit As UByte
 	lbit As Ubyte
-	curx As UInteger
 End Type
 
 Type headers
@@ -563,7 +562,6 @@ Sub options
 		Draw String framebuffer, (centerx-halfx,(centery-halfy)+75), "Enable opcode trace(slow!): " & IIf(do_trace = 1, "Yes", "No"), tempcolor
 		tempcolor = RGB(255,255,255)
 
-
 		If mousex > (centerx - halfx) And mousex < ((centerx-halfx)+453) Then
 			If mousey > (centery - halfy +(83)) And mousey < (centery - halfy +(97)) Then
 				tempcolor = RGB(150,0,255)
@@ -578,15 +576,6 @@ Sub options
 		Draw String framebuffer, (centerx-halfx,(centery-halfy)+90), "Fit scaled NES image to window(no debug info at all): " & IIf(fitwindow = 1, "Yes", "No"), tempcolor
 		tempcolor = RGB(255,255,255)
 
-
-
-
-
-
-
-
-
-
 		If fitwindow = 0 Then status
 		If mousex < screenx And mousey < screeny Then
 			While mousebuttons <> 0
@@ -596,9 +585,6 @@ Sub options
 		End If
 		Draw String framebuffer, (centerx-halfx,centery+halfy-25), "Use mousewheel to change highlighted values!", RGB(255,255,255)
 		Draw String framebuffer, (centerx-halfx,centery+halfy-10), "Press O to return to emulation!", RGB(255,255,255)
-
-
-
 
 	Loop While Not MultiKey(SC_O) And Not MultiKey(SC_ESCAPE)
 	If MultiKey(SC_ESCAPE) Then CAE
