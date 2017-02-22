@@ -6,7 +6,9 @@ Declare Sub renderSprites
 Declare Sub deriveAddresses(ByVal z As UByte)
 Declare Function readPPUreg(ByVal addr As UShort)as ULongInt
 Declare Function writePPUreg(ByVal addr As uShort, ByVal value As UByte) As ULongInt
-
+Dim Shared As UByte readBuff
+Dim Shared As UShort tempAddr
+Dim Shared As UByte scrollX, scrollY
 Function writePPUreg(ByVal addr As UShort, ByVal value As UByte) As ULongInt
 	Select Case(addr)
 		Case &h2000
@@ -20,13 +22,23 @@ Function writePPUreg(ByVal addr As UShort, ByVal value As UByte) As ULongInt
 			ppu.sprAddr and= &hFF
 			ppu.sprAddr +=1
 		Case &h2005
+			If ppu.addrLatch = 0 Then
+				ppu.addrLatch = 1
+				scrollX = value
+			
+			Else
+				ppu.addrLatch = 0
+				scrollY = value
+				
+			EndIf
 			PPUSCROLL = value Or ((PPUSCROLL And &hFF) Shl 8)
 		Case &h2006
 			If ppu.addrLatch = 0 Then
 				ppu.addrLatch = 1
-				ppu.vrAddr = (value Shl 8)
+				tempAddr = (value Shl 8)
 			Else
 				ppu.addrLatch = 0
+				ppu.vrAddr = tempAddr
 				ppu.vrAddr = (ppu.vrAddr Or value) And &h3FFF
 			EndIf
 		Case &h2007
@@ -57,18 +69,20 @@ Function writePPUreg(ByVal addr As UShort, ByVal value As UByte) As ULongInt
 End Function
 
 Function readPPUreg(ByVal addr As UShort)As ULongInt
+	If instruction = "LDA" orelse instruction ="LDX" orelse instruction = "LDY" orelse instruction = "CMP" OrElse instruction = "BIT"  Then 
 	Dim As UByte value
 	Select Case addr
 		Case &h2002
 			value = PPUSTATUS
 			PPUSTATUS = PPUSTATUS And &h7F
-			'ppu.addrLatch = 0
+			ppu.addrLatch = 0
 			'clear latch and scroll latch
 		Case &h2004
-			beep
+		'	beep
 			value = ppu.sprRAM(ppu.sprADDR)
 			If Not (ppustatus And &h80) Then  ppu.sprADDR+=1
 		Case &h2007 'This section isn't working right!
+			
 			Dim As UInteger vraddr
 			vraddr = ppu.vraddr
 			If vraddr = &h3f10 OrElse vraddr = &h3f14 OrElse vraddr =&h3f18 OrElse vraddr = &h3f1c Then vraddr - = &h10
@@ -82,12 +96,26 @@ Function readPPUreg(ByVal addr As UShort)As ULongInt
 				If vraddr >= &h2800 Andalso vraddr < &h2BFF Then vraddr -=&h800
 				If vraddr >= &h2c00 Andalso vraddr < &h2FFF Then vraddr -=&h800			
 			EndIf
-			value = ppu.vram(vrAddr)
+			If ppu.vrAddr < &h3f00 Then 
+			value = readBuff
+			readBuff = ppu.vram(ppu.vrAddr )
+			Else 
+			value = ppu.vram(ppu.vrAddr)
+			EndIf
+			
+			If PPUCTRL_I = 1 Then
+				ppu.vrAddr += 32
+			Else ppu.vrAddr += 1
+			EndIf
+			ppu.vrAddr And= &h3FFF
+			
+			
 		Case Else
-		beep
+
 			
 	End Select
 	Return value
+	EndIf
 End Function
 
 Sub deriveAddresses(ByVal z As UByte) 'This sub derives the addresses for the palette and the current background tile. The Z that is passed is the current background tile we are drawing for this scanline

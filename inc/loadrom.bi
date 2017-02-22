@@ -1,4 +1,4 @@
-Sub loadMapper0
+Sub loadMapper0 'NROM / CxROM
 		For i As Integer = 0 To (header.prgSize*16*1024)-1
 			cpu.memory(&h8000+i) = prgRom(i)
 		Next
@@ -11,7 +11,7 @@ Sub loadMapper0
 				ppu.VRAM(i) = chrRom(i)
 		Next
 End Sub
-Sub loadMapper1
+Sub loadMapper1 'MMC1
 	Dim As UInteger loadOffset
 	loadOffset = header.prgSize*&h4000 'Number of banks x 16KB
 	loadOffset -= &h4000 'Get start of last bank
@@ -21,7 +21,12 @@ Sub loadMapper1
 		cpu.memory(&hC000+i) = prgRom(loadOffset+i)
 	Next
 End Sub
-Sub loadMapper2
+Sub loadMapper3 'CxROM
+	For i As Integer = 0 To &h7FFF
+		cpu.memory(&h8000+i) = prgRom(i)
+	Next
+End Sub
+Sub loadMapper2 'UxROM
 	Dim As UInteger loadOffset
 	loadOffset = header.prgSize*&h4000 'Number of banks x 16KB
 	loadOffset -= &h4000 'Get start of last bank
@@ -30,14 +35,31 @@ Sub loadMapper2
 		cpu.memory(&HC000+i) = prgRom(loadOffset+i)
 	Next
 End Sub
+Sub loadMapper4 'MMC3
+	Dim As UInteger loadOffset
+	loadOffset = header.prgSize * &h4000
+	loadOffset -= &h4000
+	For i As Integer = 0 To &h1FFF
+		cpu.memory(&h8000+i) = prgRom(i)
+		cpu.memory(&hA000+i) = prgRom(&h2000+i)
+	Next
+	For i as Integer = 0 To &h3FFF
+		cpu.memory(&hC000+i) = prgRom(loadOffset + i)
+	Next
+End Sub
+Sub loadMapper7 'AxROM
+	For i As Integer = 0 To &h7FFF
+		cpu.memory(&h8000+i) = prgRom(i)
+	Next
+End Sub
 Sub loadROM
-	Dim As String progname, onechr
+	Dim As String progname, shpname, onechr
 	'See if we got a filename from the command line or drag and drop
 	If Command(1) <> "" Then
 		progname = Command(1)
 		GoTo gotname
 	End If
-	Print "Note: ROM must be in EXEPATH, else use drag and drop to load it!)"
+		Print "Note: ROM must be in EXEPATH, else use drag and drop to load it!)"
 	Print "Press ENTER to load the last booted ROM!"
 	Input "Program to run (compiled, no header): ", progname 'Get a filename from user
 	
@@ -85,8 +107,6 @@ Sub loadROM
 	Get #1, 11, header.flags10
 	Get #1, 12, header.zeros()
    skipread:
-   If header.flags6 And 1 = 1 Then mirroring = "V" Else mirroring = "H"
-   If header.flags9 And 1 = 1 Then TVsystem = "PAL" Else TVsystem = "NTSC"
 	If Chr(header.signature(0)) = "N" And Chr(header.signature(1)) = "E" And Chr(header.signature(2)) = "S" Then
 		ReDim As UByte PrgROM(header.prgSize*16*1024)
 		ReDim As UByte chrROM(header.chrSize*8*1024)
@@ -97,7 +117,7 @@ Sub loadROM
 	End If
 	Close #1
 	mapper = header.Flags6 Shr 4
-	mapper Or= (header.Flags7 And 4)
+	mapper Or= ((header.Flags7 Shr 4) And 4)
 	If emulatorMode= "6502" Then
 	'copy rom to cpu memory
 	For i As Integer = 0 To romsize
@@ -112,13 +132,18 @@ Sub loadROM
 			Case 2 
 				loadMapper2
 			Case 3
-				loadMapper0 'Mapper 0 loads the same as 3
+				loadMapper3 'Mapper 0 loads the same as 3
+			Case 4
+				loadMapper4
+			Case 7
+				loadMapper7
 			Case Else 
-				Cls
-			Print "You're ROM ain't supported laddy. "
-			Print "Maybe try again another day. " 
-			Sleep 2000,1
-			CAE
+			Beep  
+			Cls 
+			Print "Unsupported mapper"
+			Sleep 2000
+			Cls 
+			CAE 
 		End Select
 			
 		EndIf

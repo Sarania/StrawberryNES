@@ -654,7 +654,7 @@ Sub romInfo
 		draw String framebuffer, (centerx-32,centery-(halfy-1)), "Rom Info"
 		Draw String framebuffer, (centerx-halfx,centery-(halfy-12)), "File name: " & shpname
 		Draw String framebuffer, (centerx-halfx,centery-(halfy-22)), "Region: " & TVsystem
-		Draw String framebuffer, (centerx-halfx,centery-(halfy-32)), "PRG Size: " & header.prgSize*16 & "KB | CHR Size: " & header.chrSize*8 & "KB"
+		'Draw String framebuffer, (centerx-halfx,centery-(halfy-32)), "PRG Size: " & header.prgSize*16 & "KB | CHR Size: " & header.chrSize*8 & "KB"
 		Draw String framebuffer, (centerx-halfx,centery-(halfy-42)), "Mapper: " & mappertext(mapper)
 		Draw String framebuffer, (centerx-halfx,centery-(halfy-52)), "Mirroring: " & mirroring
 		
