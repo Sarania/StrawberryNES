@@ -58,6 +58,8 @@ Declare Sub loadini 'Load the ini file
 Declare Sub writeini
 Declare Sub options
 Declare Sub romInfo
+Declare Sub savestate
+Declare Sub loadstate
 Declare Sub nmi
 #ifdef debugmode
 '======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
@@ -69,15 +71,15 @@ Dim Shared As UByte logcomp = 1
 Declare Sub write_the_log
 Declare Sub comparelog
 Declare Sub fail(ByVal op As String, ByVal expected As String, ByVal actual As String)
-'==================================================================================================================================================================
+'=======================7===========================================================================================================================================
 #EndIf
 Declare Sub push_framebuffer
 Declare Sub clear_framebuffer
 Declare Sub frameLimit
 Dim Shared As Any Ptr nesbuffer
-Dim Shared As UByte debug, mapper, spritehit = 0, trace_done = 0, flimit = 1, sf = 2, forcerender = 0, do_trace = 1, backIsTransparent = 1, fullscreen = 0, fitwindow = 0
+Dim Shared As UByte debug, mapper, spritehit = 0, trace_done = 0, flimit = 1, sf = 2, forcerender = 0, do_trace = 1, backIsTransparent = 1, fullscreen = 0, fitwindow = 0, saveSlot = 1
 Dim Shared As UInteger opstoskip, nextskip, opGoal, romsize, screenx, screeny, centerx, centery, totalops, ticksPerSecond, logops=0
-Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version, lastrom, shpname, mirroring, TVsystem
+Dim Shared As String opHistory(0 To 255), emulatorMode, instruction, amode, msg, version, lastrom, shpname, gamename, mirroring, TVsystem
 Dim Shared As Single start, lastframetime,opsPerSecond, stepstart,fps, vstart, curtime
 Dim Shared As Any Ptr strawberry
 Dim Shared As ULongInt ticks, totalTicks
@@ -156,7 +158,7 @@ Type ppus
 	vram(0 To &hFFFF) As ubyte
 	scanline As UInteger = 241
 	sprAddr As UShort
-	vrAddr As Uinteger
+	vrAddr As UInteger
 	addrLatch As UByte
 	basePatternAddress As UInteger
 	curTile As UInteger
@@ -169,7 +171,8 @@ Type ppus
 	sprCount As UByte
 	sprHeight As UByte
 	sprAddress As UInteger
-	sprTileNumber As Uinteger
+	sprTileNumber As UInteger
+	finex As uinteger
 	ubit As UByte
 	lbit As Ubyte
 End Type
@@ -262,10 +265,10 @@ nextskip = 1
 Sub status 'This sub prints the status of various things to the screen
 	'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
 	#Ifdef debugmode
-	Draw String framebuffer, (0,0), "Emulator mode: " & emulatorMode
+	'Draw String framebuffer, (0,0), "CoarseX: " & cxscroll & " CoarseY: " & cyscroll & " FineX: " & fxscroll & " FineY: " & fyscroll
 	Draw String framebuffer, (0,10), "Mouse - X:" & mousex & " Y:"& mousey & " Buttons:" & mousebuttons & " Wheel:" & mousewheel
 	Draw String framebuffer, (0,20), "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
-	Draw String framebuffer, (0,30), "Mapper: " & mapper
+	Draw String framebuffer, (0,30), "Mapper: " & mapper & " | Save State Slot: " & saveSlot
 	Draw String framebuffer, (0,40), "Total ops: " & totalops & " | Stepping by: " & opstoskip
 	Draw String framebuffer, (0,50), "Ops per second: " &  Format(opsPerSecond, "0") & " | CPU Frequency: " &  Format(ticksPerSecond/1000000,"0.000") & "Mhz"
 	Draw String framebuffer, (0,60), "________________________"
@@ -450,7 +453,7 @@ sub frameLimit
 	fps = vblanks/(Timer - vStart)
 	'Limit FPS
 	If flimit = 1 Then
-		While  ticksPerSecond > 1789000 OrElse fps > 60
+		While  ticksPerSecond > 1789000  OrElse fps > 60 '1.789Mhz or 60FPS
 			ticksPerSecond = TotalTicks/(Timer - start)
 			fps = vblanks/(Timer - vStart)
 		Wend
@@ -598,9 +601,9 @@ Sub options
 		EndIf
 		centerx = screenx/2
 		centery = screeny/2
-	While (256*sf > screenx) OrElse (240*sf > screeny)
-		sf-=1
-	Wend
+		While (256*sf > screenx) OrElse (240*sf > screeny)
+			sf-=1
+		Wend
 		ImageDestroy(framebuffer)
 		ImageDestroy(nesbuffer)
 		framebuffer = ImageCreate(screenx,screeny,RGB(0,0,0))
@@ -632,7 +635,7 @@ Sub romInfo
 	Dim As Integer oldwheel
 	Dim As Byte resindex =-1, firstloop = 1, oldfitwindow = fitwindow, oldsf = sf
 	dim as string mappertext(0 to 10) = {"0 - NROM", "1 - MMC1", "2 - UNROM", "3 - CNROM", "4 - MMC3", "5 - MMC5", "6 - Mapper 6", "7 - AOROM", "8 - Mapper 8", "9 - MMC2"}
-	
+
 	For qq As Integer = 0 To 9
 		If screenx = res(qq,1) Then resindex = qq
 	Next
@@ -654,14 +657,134 @@ Sub romInfo
 		draw String framebuffer, (centerx-32,centery-(halfy-1)), "Rom Info"
 		Draw String framebuffer, (centerx-halfx,centery-(halfy-12)), "File name: " & shpname
 		Draw String framebuffer, (centerx-halfx,centery-(halfy-22)), "Region: " & TVsystem
-		'Draw String framebuffer, (centerx-halfx,centery-(halfy-32)), "PRG Size: " & header.prgSize*16 & "KB | CHR Size: " & header.chrSize*8 & "KB"
+		Draw String framebuffer, (centerx-halfx,centery-(halfy-32)), "PRG Size: " & header.prgSize*16 & "KB | CHR Size: " & header.chrSize*8 & "KB"
 		Draw String framebuffer, (centerx-halfx,centery-(halfy-42)), "Mapper: " & mappertext(mapper)
 		Draw String framebuffer, (centerx-halfx,centery-(halfy-52)), "Mirroring: " & mirroring
-		
-		 
+
+
 	Loop While Not MultiKey(SC_ESCAPE) AndAlso Not MultiKey(SC_f11)
 	While MultiKey(SC_F11):Sleep 1,1: wend
-	
+
+End Sub
+
+
+Sub savestate
+	Dim As UInteger savex, savey
+	Dim As UByte f = FreeFile
+
+	Open ExePath & "/states/" & gamename & "_strawberry.state" & saveSlot For Binary As #f
+	Put #f, , cpu
+	put #f, , ppu
+	put #f, , header
+	put #f, , prgROM()
+	put #f, , chrROM()
+	put #f, , prgRAM()
+	put #f, , PPUbuffer()
+	put #f, , backbuffer()
+	put #f, , oldbuffer()
+	close #f
+
+	Open ExePath & "/states/" & gamename & "_strawberry.vars" & saveSlot For Binary As #f
+	Print #1, debug
+	Print #1, mapper
+	Print #1, spritehit
+	Print #1, flimit
+	Print #1, sf
+	Print #1, forcerender
+	Print #1, backIsTransparent
+	Print #1, opstoskip
+	Print #1, nextskip
+	Print #1, romsize
+	Print #1, totalops
+	Print #1, ticksPerSecond
+	Print #1, emulatorMode
+	Print #1, instruction
+	Print #1, amode
+	Print #1, shpname
+	Print #1, mirroring
+	Print #1, TVsystem
+	Print #1, start
+	Print #1, lastframetime
+	Print #1, opsPerSecond
+	Print #1, stepstart
+	Print #1, fps
+	Print #1, vstart
+	Print #1, curtime
+	Print #1, ticks
+	Print #1, totalTicks
+	Print #1, status_timer
+	Print #1, vblanks
+	For savey As UInteger = 0 To screeny
+		For savex As UInteger = 0 To screenx
+			Print #1, Point(savex,savey)
+		Next
+	Next
+	Close #f
+	msg = "Save state in slot " & saveSlot & " was saved successfully!"
+End Sub
+
+Sub loadstate
+	Dim As UInteger savex, savey, savecolor
+	Dim As UByte f = FreeFile, errd
+	If Not fileexists (ExePath & "/states/" & gamename & "_strawberry.state" & saveSlot) Then errd = 2
+	If Not fileexists (ExePath & "/states/" & gamename & "_strawberry.vars" & saveSlot) Then errd = 2
+	If errd = 2 Then
+		msg = "Save state does not exist or is corrupt!"
+		Exit sub
+	EndIf
+	Open ExePath & "/states/" & gamename & "_strawberry.state" & saveSlot For Binary As #f
+	Get #f, , cpu
+	Get #f, , ppu
+	Get #f, , header
+	ReDim As UByte PrgROM(header.prgSize*16*1024)
+	ReDim As UByte chrROM(header.chrSize*8*1024)
+	ReDim As UByte prgRAM(header.prgRAMSize*8*1024)
+	Get #f, , prgROM()
+	Get #f, , chrROM()
+	get #f, , prgRAM()
+	Get #f, , PPUbuffer()
+	Get #f, , backbuffer()
+	get #f, , oldbuffer()
+	close #f
+
+	Open ExePath & "/states/" & gamename & "_strawberry.vars" & saveSlot For Binary As #f
+	Input #1, debug
+	input #1, mapper
+	Input #1, spritehit
+	Input #1, flimit
+	Input #1, sf
+	Input #1, forcerender
+	Input #1, backIsTransparent
+	Input #1, opstoskip
+	Input #1, nextskip
+	Input #1, romsize
+	Input #1, totalops
+	Input #1, ticksPerSecond
+	Input #1, emulatorMode
+	Input #1, instruction
+	Input #1, amode
+	Input #1, shpname
+	Input #1, mirroring
+	Input #1, TVsystem
+	Input #1, start
+	Input #1, lastframetime
+	Input #1, opsPerSecond
+	Input #1, stepstart
+	Input #1, fps
+	Input #1, vstart
+	Input #1, curtime
+	Input #1, ticks
+	Input #1, totalTicks
+	Input #1, status_timer
+	Input #1, vblanks
+	For savey As UInteger = 0 To screeny
+		For savex As UInteger = 0 To screenx
+			Input #1, savecolor
+			PSet nesbuffer, (savex,savey), savecolor
+		Next
+	Next
+	Close #f
+	msg = "Save state in slot " & saveslot & " was loaded successfully!"
 End Sub
 '======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
 #Ifdef debugmode
@@ -768,7 +891,7 @@ Do
 	#EndIf
 	'==================================================================================================================================================================
 	'====================================REMOVE THIS======================================================
-	If emulatormode = "6502" Then 
+	If emulatormode = "6502" Then
 		cpu.memory(&hfe) = Rnd*255 ' random number generator for simple 6502 programs
 		keycheck
 	EndIf

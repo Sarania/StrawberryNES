@@ -49,7 +49,23 @@ Sub keycheck
 		Else
 			cpu.memory(&hff)=Asc(" ")
 		EndIf
-	End if
+	End If
+	
+	If MultiKey(SC_F1) Then
+		savestate
+		While MultiKey(SC_F1):Sleep 10: Wend
+	EndIf
+	
+	If MultiKey(SC_F2) Then
+		saveSlot+=1
+		If saveSlot > 10 Then saveSlot = 1
+		While MultiKey(SC_F2):Sleep 10: Wend
+	EndIf
+	
+	If MultiKey(SC_F3) Then
+		loadstate
+		While MultiKey(SC_F3):Sleep 10: Wend
+	EndIf
 
 	If MultiKey(SC_plus) Then ' increase emulation speed
 		opgoal+=500

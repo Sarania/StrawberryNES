@@ -5,7 +5,7 @@ Dim Shared As UInteger prgOffs, chrOffs
 #Define mirror (R0 And 3)
 #Define prgSwap ((R0 Shr 2)And 1)
 #Define pSize ((R0 Shr 3)And 3)
-#Define chrSize ((R0 Shr 4)And 1)  
+'#Define chrSize ((R0 Shr 4)And 1)  
 #Define chrBank0 (R1 And &hF)
 #Define chrBank1 (R2 And &hF)
 #Define prgBank (R3 And &hF)

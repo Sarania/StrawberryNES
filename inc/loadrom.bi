@@ -81,9 +81,12 @@ Sub loadROM
 		If onechr = "\" Then
 			onechr = ""
 			shpname = ""
+			gamename = ""
 		EndIf
+		gamename = gamename & onechr
 		shpname = shpname & onechr
 	Next
+	gamename = Left(gamename,Len(gamename)-4)
 
 	WindowTitle "StrawberryNES - " & shpname ' set window title
 	Open progname For Binary As #1
