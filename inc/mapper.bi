@@ -12,9 +12,9 @@ Dim Shared As UInteger prgOffs, chrOffs
 #Define wRAM (( R3 Shr 4)And 1)
 R0 = &hC
 
-Declare Function bankSwap(ByVal bank As UInteger,ByVal addr As UShort) As ULongInt
+Declare sub bankSwap(ByVal bank As UInteger,ByVal addr As UShort)
 
-Function bankswap(ByVal value As UInteger,ByVal addr As UShort) As ULongInt
+Sub bankswap(ByVal value As UInteger,ByVal addr As UShort) 
 	
 	Select Case mapper
 		Case 1 'MMC1
@@ -36,12 +36,12 @@ Function bankswap(ByVal value As UInteger,ByVal addr As UShort) As ULongInt
 					If Bit(R0,4) Then
 						chrOffs = R1 * &h1000
 					 	For i As Integer = 0 To &hFFF
-					 		ppu.vram(i) = chrRom(chrOffs+i)
+					 		*ppu.vram(i) = chrRom(chrOffs+i)
 					 	Next
 					Else
 						chrOffs = (R1 Shr 1) * &h2000
 						For i As Integer = 0 To &h1FFF
-							ppu.vram(i) = chrRom(chrOffs+i)
+							*ppu.vram(i) = chrRom(chrOffs+i)
 						Next
 					EndIf
 				Case &hC000 To &hDFFF 'CHR Bank 1
@@ -49,7 +49,7 @@ Function bankswap(ByVal value As UInteger,ByVal addr As UShort) As ULongInt
 					If Bit(R0,4) Then 
 						chrOffs = R2 * &h1000
 					 	For i As Integer = 0 To &hFFF
-					 	ppu.vram(&h1000+i) = chrRom(chrOffs+i)
+					 	*ppu.vram(&h1000+i) = chrRom(chrOffs+i)
 					 	Next
 					EndIf
 				Case &hE000 To &hFFFF 'PRG Bank0
@@ -97,7 +97,7 @@ Function bankswap(ByVal value As UInteger,ByVal addr As UShort) As ULongInt
 		value = value And 3 
 		value*= &h2000
 		For i As Integer = 0 To &h2000
-			ppu.vram(i) = chrRom(value+i)
+			*ppu.vram(i) = chrRom(value+i)
 		Next
 		Case 7 'AOROM
 					value = value And 7
@@ -108,4 +108,4 @@ Function bankswap(ByVal value As UInteger,ByVal addr As UShort) As ULongInt
 		Case Else
 		'Unsupported mapper	
 	End Select
-End Function
+End sub

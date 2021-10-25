@@ -266,7 +266,7 @@ Sub INS_BRK
 	Dim suspicious_array(0 To 1) As UByte
 	suspicious_array(0) = readmem(&HFFFE)
 	suspicious_array(1) = readmem(&HFFFF)
-	suspicious_pointer = @suspicious_array(0)
+	suspicious_pointer = Cast(UShort Ptr, @suspicious_array(0))
 	cpu.pc = *suspicious_pointer
 End Sub
 

@@ -76,6 +76,7 @@ Declare Sub fail(ByVal op As String, ByVal expected As String, ByVal actual As S
 Declare Sub push_framebuffer
 Declare Sub clear_framebuffer
 Declare Sub frameLimit
+Declare Sub assignPointers
 Dim Shared As Any Ptr nesbuffer
 Dim Shared As UByte debug, mapper, spritehit = 0, trace_done = 0, flimit = 1, sf = 2, forcerender = 0, do_trace = 1, backIsTransparent = 1, fullscreen = 0, fitwindow = 0, saveSlot = 1
 Dim Shared As UInteger opstoskip, nextskip, opGoal, romsize, screenx, screeny, centerx, centery, totalops, ticksPerSecond, logops=0
@@ -86,7 +87,7 @@ Dim Shared As ULongInt ticks, totalTicks
 Dim Shared As UInteger status_timer, vblanks, mousex,mousey, mousebuttons
 Dim shared As Integer mousewheel
 Dim Shared As Any Ptr framebuffer
-Dim Shared As Integer PPUbuffer(256,240), backbuffer(256,240), oldbuffer(256,240)
+Dim Shared As uInteger PPUbuffer(256,240), backbuffer(256,240), oldbuffer(256,240), sprbuffer(256,240)
 Dim Shared As uinteger masterPalette(64) = {&h545454, &h001E74, &h081090, &h300088, &h440064, &h5C0030, &h540400, &h3C1800, &h202A00, &h083A00, &h004000, &h003C00, &h00323C, &h000000, &h000000, &h000000, &h989698, &h084CC4, &h3032EC, &h5C1EE4, &h8814B0, &hA01464, &h982220, &h783C00, &h545A00, &h287200, &h087C00, &h007628, &h006678, &h000000, &h000000, &h000000, &hECEEEC, &h4C9AEC, &h787CEC, &hB062EC, &hE454EC, &hEC58B4, &hEC6A64, &hD48820, &hA0AA00, &h74C400, &h4CD020, &h38CC6C, &h38B4CC, &h3C3C3C, &h000000, &h000000, &hECEEEC, &hA8CCEC, &hBCBCEC, &hD4B2EC, &hECAEEC, &hECAED4, &hECB4B0, &hE4C490, &hCCD278, &hB4DE78, &hA8E290, &h98E2B4, &hA0D6E4, &hA0A2A0, &h000000, &h000000}
 Dim Shared As UByte button_counter, button(0 To 7)
 Dim Shared As UInteger res(10,10)
@@ -155,15 +156,15 @@ Type ppus
 	'----------------------------'
 	sprRAM (0 To &hFF) As UInteger
 	tempSPRram (0 To 7, 0 To 3) As uinteger
-	vram(0 To &hFFFF) As ubyte
+	vram(0 To &hFFFF) As UByte Ptr
+	vramdata(0 To &hFFFF) As ubyte
+	tempAddr As ushort
 	scanline As UInteger = 241
-	sprAddr As UShort
+	sprAddr As Ubyte
 	vrAddr As UInteger
 	addrLatch As UByte
 	basePatternAddress As UInteger
 	curTile As UInteger
-	tableLine As UInteger
-	attrbLine As UInteger
 	curAttrb As UInteger
 	paletteIndex As UInteger
 	finalPalette As UInteger
@@ -172,7 +173,10 @@ Type ppus
 	sprHeight As UByte
 	sprAddress As UInteger
 	sprTileNumber As UInteger
-	finex As uinteger
+	xTile As ubyte
+	xfine As UByte
+	yTile As UByte
+	yFine As UByte
 	ubit As UByte
 	lbit As Ubyte
 End Type
@@ -205,6 +209,8 @@ Dim Shared As cpus nint
 
 Dim Shared cpu As cpus '6502 CPU
 Dim Shared ppu As ppus 'slightly less suspicious PPU (but still pretty suspicious)
+' Here we create a 2d array of pointers to tiles to make PPU work easier
+Dim Shared nameTable(0 To 63, 0 To 59, 0 To 1) As UByte Ptr
 Dim Shared header As headers 'iNES header
 '================================================================PPU related macros================================================================================
 #define PPUCTRL cpu.memory(&h2000)
@@ -266,7 +272,7 @@ Sub status 'This sub prints the status of various things to the screen
 	'======================================================ONLY INCLUDED IF DEBUGMODE IS DEFINED!======================================================================
 	#Ifdef debugmode
 	'Draw String framebuffer, (0,0), "CoarseX: " & cxscroll & " CoarseY: " & cyscroll & " FineX: " & fxscroll & " FineY: " & fyscroll
-	Draw String framebuffer, (0,10), "Mouse - X:" & mousex & " Y:"& mousey & " Buttons:" & mousebuttons & " Wheel:" & mousewheel
+	Draw String framebuffer, (0,10), "courseX:" & ppu.xTile & " courseY "& ppu.yTile & " Buttons:" & mousebuttons & " Wheel:" & mousewheel
 	Draw String framebuffer, (0,20), "PRG size: " & header.prgSize*16 & " | " & header.prgSize*16*1024
 	Draw String framebuffer, (0,30), "Mapper: " & mapper & " | Save State Slot: " & saveSlot
 	Draw String framebuffer, (0,40), "Total ops: " & totalops & " | Stepping by: " & opstoskip
@@ -278,7 +284,7 @@ Sub status 'This sub prints the status of various things to the screen
 	Draw String framebuffer, (0,110), "N   V   -   B   D   I   Z   C"
 	Draw String framebuffer, (0,120), Flag_S & "   " & Flag_V & "   " & flag_U & "   " & flag_B & "   " & flag_D & "   " & flag_I & "   " & flag_Z & "   " & flag_C
 	Draw String framebuffer, (0,140), "Processor status: " & cpu.ps & " " & " (" & Hex(cpu.ps) & ")"
-	Draw String framebuffer, (0,150), "Message: " & msg
+	Draw String framebuffer, (0,150), "Message: " & mirroring
 	'msg = ""
 	Draw String framebuffer, (0,160), "Trace: "
 	Line framebuffer, (0,100)-(240,130),RGB(255,255,255),b
@@ -315,9 +321,10 @@ Sub push_framebuffer 'Outputs the main framebuffer to the screen
 End Sub
 
 Sub initcpu 'initialize CPU and RAM
+	assignpointers
 	For i As Integer = 0 To 65535
 		cpu.memory(i) = 0
-		ppu.vram(i) = 0
+		*ppu.vram(i) = 0
 	Next
 	clear_framebuffer
 	clear_s
@@ -349,7 +356,7 @@ Sub nmi 'Non maskable interrupt
 	Dim suspicious_array(0 To 1) As UByte
 	suspicious_array(0) = readmem(&HFFFA)
 	suspicious_array(1) = readmem(&HFFFB)
-	suspicious_pointer = @suspicious_array(0)
+	suspicious_pointer = Cast(UShort Ptr, @suspicious_array(0))
 	cpu.pc = *suspicious_pointer
 	ticks+=7
 	'For i As Integer = 255 To 1 Step -1
@@ -374,7 +381,7 @@ Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As USho
 				tempmem(q)=cpu.memory(addr+q)
 			Next
 			If addr = &hff Andalso numbytes = 2 Then tempmem(1) = cpu.memory(0):ticks+=1:End if
-			suspicious_pointer=@tempmem(0)
+			suspicious_pointer= Cast (UShort Ptr, @tempmem(0))
 			readmem = *suspicious_pointer
 	End Select
 End Function
@@ -682,6 +689,8 @@ Sub savestate
 	put #f, , PPUbuffer()
 	put #f, , backbuffer()
 	put #f, , oldbuffer()
+	put #f, , sprbuffer()
+	
 	close #f
 
 	Open ExePath & "/states/" & gamename & "_strawberry.vars" & saveSlot For Binary As #f
@@ -745,6 +754,7 @@ Sub loadstate
 	Get #f, , PPUbuffer()
 	Get #f, , backbuffer()
 	get #f, , oldbuffer()
+	get #f, , sprbuffer()
 	close #f
 
 	Open ExePath & "/states/" & gamename & "_strawberry.vars" & saveSlot For Binary As #f
@@ -900,12 +910,12 @@ Do
 	totalops+=1
 	decode_and_execute(cpu.memory(cpu.pc-1)) ' decode the binary located at the PC to opcode and address mode and then execute the instruction
 	clear_b '==========================================================HACKS==========================================================================================
-	If ticks >=111 And emulatorMode <> "6502" Then
+	If ticks >=113 And emulatorMode <> "6502" Then
 		keycheck
 		ppuLoop
 		frameLimit
 		totalTicks+=ticks
-		ticks = ticks - 111
+		ticks = ticks - 113
 	EndIf
 	#Ifdef debugmode
 	If debug = 1 And nextskip = 0 Then

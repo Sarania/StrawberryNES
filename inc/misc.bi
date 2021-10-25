@@ -95,7 +95,7 @@ Sub keycheck
 		Dim As Integer f = FreeFile
 		If fileexists("VRAMdump.mem") Then Kill ("VRAMdump.mem")
 		Open "VRAMdump.mem" For Binary As #f
-		Put #f, 1, ppu.vram()
+		'Put #f, 1, *ppu.vram()
 		Close #f
 		Print "VRAM dumped to VRAMdump.mem"
 		Beep
