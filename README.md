@@ -1,6 +1,8 @@
 StrawberryNES
 ==================
 
+(In memory of Gavin Schulte/Nobbs66)
+
 6502/NES emulator in FreeBASIC
 
 A work in project 6502/NES emulator written in FreeBASIC. We've come a LONG way! Many games are playable now
