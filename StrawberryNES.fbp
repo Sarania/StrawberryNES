@@ -23,16 +23,16 @@ Delete=
 [TabOrder]
 TabOrder=1,8,2,3,9,10,4,6,7,0
 [File]
-1=Project Strawberry.bas
-2=Inc\6502_instruction_set.bi
-3=Inc\decoder.bi
-4=Inc\misc.bi
-5=Res\Strawberry.res
-6=Res\strawberry.rc
+1=StrawberryNES.bas
+2=inc\6502_instruction_set.bi
+3=inc\decoder.bi
+4=inc\misc.bi
+5=res\Strawberry.res
+6=res\strawberry.rc
+7=inc\mapper.bi
 8=inc\PPU.bi
 9=inc\Controller.bi
 10=inc\loadrom.bi
-7=inc\mapper.bi
 [BreakPoint]
 1=
 2=
@@ -44,7 +44,7 @@ TabOrder=1,8,2,3,9,10,4,6,7,0
 9=
 10=
 [FileInfo]
-1=0,756,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1=0,877,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 2=0,85,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 3=0,834,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 4=0,97,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0

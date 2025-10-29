@@ -1,88 +1,71 @@
-'By cha0s @ freeBASIC forum
-Declare sub palette_using_dib( byval dib as FIBITMAP ptr )
-Declare function freeimage_to_fbgfx( byval dib as FIBITMAP Ptr, byval set_palette as integer = 0 ) as fb.IMAGE Ptr
-Declare Function freeimage_load_fb( byref filename as string, byval set_palette as integer = 0 ) as fb.IMAGE Ptr
+Declare Function freeimage_load_fb( byref filename as string) as any Ptr
+Declare Function FI_Load( byref filename as string) as Any Ptr
 
-sub palette_using_dib( byval dib as FIBITMAP ptr )
- 
-  dim as RGBQUAD ptr pal = FreeImage_GetPalette( DIB )
- 
-  for i as integer = 0 to 255
+Function FI_Load(filename As String) As Any Ptr
+    If Len(filename) = 0 Then
+        Return NULL
+    End If
 
-    with pal[i]
-     
-      palette i, cubyte( .rgbRed ), cubyte( .rgbGreen ), cubyte( .rgbBlue )
-   
-    end with
- 
-  next
+    '' Find out the image format
+    Dim As FREE_IMAGE_FORMAT form = FreeImage_GetFileType(StrPtr(filename), 0)
+    If form = FIF_UNKNOWN Then
+        form = FreeImage_GetFIFFromFilename(StrPtr(filename))
+    End If
 
-end sub
 
-function freeimage_to_fbgfx( byval dib as FIBITMAP Ptr, byval set_palette as integer = 0 ) as fb.IMAGE ptr
-       
-        dim as fb.IMAGE ptr res = imagecreate( FreeImage_GetWidth( dib ), FreeImage_GetHeight( dib ) )
-       
-        dim as any ptr to_pix = res + 1
-        dim as integer bpp = FreeImage_GetBPP( dib )
-        select case as const bpp
-        case 24
-                bpp = 32
-        case 15
-                bpp = 16
-        end select
-        bpp \= 8
-        var p = res->pitch, pal = FreeImage_GetPalette( dib ), rb = res->bpp
-       
-        FreeImage_FlipVertical( dib )
-        if( pal ) then
-                if( rb = 1 ) then
-                        for h as integer = 0 to res->height-1
-                                for w as integer = 0 to res->width-1
-                                        FreeImage_GetPixelIndex( dib, w, h, to_pix + h * p + w * rb )
-                                next
-                        next
-                        if( set_palette ) then
-                                palette_using_dib( dib )
-                        end if
-                else
-                        for h as integer = 0 to res->height-1
-                                for w as integer = 0 to res->width-1
-                                        dim as ubyte u
-                                        FreeImage_GetPixelIndex( dib, w, h, @u )
-                                        memcpy( to_pix + h * p + w * rb, pal + u, rb )
-                                next
-                        next
-                end if
-        else
-                if( rb = 1 ) then
-                        var new_d = FreeImage_ColorQuantizeEx( dib )
-                        FreeImage_FlipVertical( new_d )
-                        function = freeimage_to_fbgfx( new_d )
-                        if( set_palette ) then
-                                palette_using_dib( new_d )
-                        end if
-                        FreeImage_Unload( new_d )
-                        exit function
-                end if
-                for h as integer = 0 to res->height-1
-                        for w as integer = 0 to res->width-1
-                                FreeImage_GetPixelColor( dib, w, h, to_pix + h * p + w * rb )
-                        next
-                next
-        end if
-        FreeImage_FlipVertical( dib )
-       
-        function = res
-       
-end function
+    '' Exit if unknown
+    If form = FIF_UNKNOWN Then
+        Return NULL
+    End If
 
-function freeimage_load_fb( byref filename as string, byval set_palette as integer = 0 ) as fb.IMAGE ptr
-       
-        var dib = FreeImage_Load( FreeImage_GetFileType( filename ), filename )
-       
-        function = freeimage_to_fbgfx( dib, set_palette )
-       
-        FreeImage_Unload( dib )
-       
+    '' Always load jpegs accurate
+    Dim As UInteger flags = 0
+    If form = FIF_JPEG Then
+        flags = JPEG_ACCURATE
+    End If
+
+    '' Load the image into memory
+    Dim As FIBITMAP Ptr image = FreeImage_Load(form, StrPtr(filename), flags)
+    If image = NULL Then
+        '' FreeImage failed to read in the image
+
+        Return NULL
+    End If
+
+    '' Flip the image so it matches FB's coordinate system
+    FreeImage_FlipVertical(image)
+
+    '' Convert to 32 bits per pixel
+    Dim As FIBITMAP Ptr image32 = FreeImage_ConvertTo32Bits(image)
+
+    '' Get the image's size
+    Dim As UInteger w = FreeImage_GetWidth(image)
+    Dim As UInteger h = FreeImage_GetHeight(image)
+
+    '' Create an FB image of the same size
+    Dim As fb.Image Ptr sprite = ImageCreate(w, h)
+
+    Dim As Byte Ptr target = CPtr(Byte Ptr, sprite + 1)
+    Dim As Integer target_pitch = sprite->pitch
+
+    Dim As Any Ptr source = FreeImage_GetBits(image32)
+    Dim As Integer source_pitch = FreeImage_GetPitch(image32)
+
+    '' And copy over the pixels, row by row
+    For y As Integer = 0 To (h - 1)
+        memcpy(target + (y * target_pitch), _
+               source + (y * source_pitch), _
+               w * 4)
+    Next
+
+    FreeImage_Unload(image32)
+    FreeImage_Unload(image)
+
+    Return sprite
+End Function
+
+function freeimage_load_fb( byref filename as string) as any ptr
+    dim image as any ptr
+    image = FI_Load(filename)
+    return image
 end function

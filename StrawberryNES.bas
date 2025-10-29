@@ -45,7 +45,7 @@ Using fb
 #Include Once "string.bi"
 #Include Once "crt.bi" 'c runtime
 #Include Once "file.bi" 'File functions
-#Include Once "Freeimage.bi" ' Freeimage library
+#Include Once "FreeImage.bi" ' Freeimage library
 #Include Once "inc/freetofb.bi" 'Easily use Freeimage images in Freebasic
 #Include Once "zlib.bi" 'This is needed for the Freeimage library
 Declare Function readmem(ByVal addr As ULongInt, ByVal numbytes As UInteger = 1) As Ushort ' for reading memory
@@ -254,7 +254,7 @@ ChDir("..")
 #Include Once "inc/mapper.bi" 'mapper loading and bank switching
 #Include Once "inc/misc.bi" 'misc stuff
 #Include Once "inc/Controller.bi" 'Pad related functions and stuff
-#Include Once "inc/ppu.bi" 'PPU related functions and stuff
+#Include Once "inc/PPU.bi" 'PPU related functions and stuff
 #Include Once "inc/6502_instruction_set.bi" ' contains the instruction set
 #Include Once "inc/decoder.bi" ' decodes hex opcodes to asm
 emulatorMode = "6502"
@@ -875,7 +875,7 @@ End Sub
 ScreenRes screenx,screeny,32
 framebuffer = ImageCreate(screenx,screeny,RGB(0,0,0))
 nesbuffer = ImageCreate(screenx,screeny,RGB(255,0,255))
-strawberry = freeimage_load_fb(CurDir & "/Res/SBNES.png", TRUE) ' load cute strawberry :)
+strawberry = freeimage_load_fb(ExePath & "/res/SBNES.png") ' load cute strawberry :)
 initcpu 'initialize the 6502 and 2C02
 loadROM 'load file into ROM and cpu memory
 Cls
