@@ -1,8 +1,13 @@
-![StrawberryNES](https://github.com/Sarania/StrawberryNES/blob/master/res/SBNES.png?raw=true)
-==================
+<p align="center">
+  <img src="https://github.com/Sarania/StrawberryNES/blob/master/res/SBNES.png?raw=true" alt="Sublime's custom image"/>
+</p>
+<div align="center">
+========================================================
+
 6502/NES emulator in FreeBASIC
 
 (In memory of Gavin Schulte/Nobbs66)
+</div>
 
 StrawberryNES is a work in progress NES emulator written in pure FreeBASIC. The CPU core is in pretty good shape, the PPU is still currently a bit sketchy but scrolling is supported. There's no sound and mapper support is somewhat limited. It's been written off and on over MANY years and thus displays varying levels of quality, though some stuff I am genuinely proud of. It was written largely by myself - Blyss Sarania - but important contributions were also made by my late partner Gavin Schulte (mapper, loading, keeping me sane ❤️). I've recently been taking a look at it again, it has some issues on modern systems I'd like to fix and maybe more. We'll see! For now, enjoy these screenshots:
 
